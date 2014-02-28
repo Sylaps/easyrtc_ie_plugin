@@ -1,7 +1,7 @@
 easyrtc_ie_plugin
 =================
 
-## Deps
+## Deps 
 
 Install depot_tools:
 
@@ -23,7 +23,9 @@ Clone the repository using ```git```.
 Get the source code -> ```gclient sync --nohooks```
 Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```
 
-## Building
+### Directory Setup
+
+This project is not integrated with ```gyp``` currently, so a manual setup is required.
 
 Place this repo in the same directory as ```trunk/``` as cloned from ```gclient sync```.
 
@@ -31,3 +33,14 @@ Place this repo in the same directory as ```trunk/``` as cloned from ```gclient 
 <dir>/trunk/
 <dir>/easyrtc_ie_plugin/
 ```
+
+Open the ```<dir>/trunk/all.sln``` file in Visual Studio.
+Right click root project node and "Add Existing Project..."
+Choose ```<dir>/easyrtc_ie_plugin/WebRTC_ATL.vcxproj```
+
+## Building (Visual Studio 2013)
+
+
+Start VS2013 as Administrator (required to register ActiveX control)
+In visual studio, right click the WebRTC_ATL project node, and select "Rebuild Project". Once built you can just "Build Project" but "Rebuild..." will build all deps, including WebRTC itself.
+
