@@ -40,7 +40,9 @@ Choose ```<dir>/easyrtc_ie_plugin/WebRTC_ATL.vcxproj```
 
 ## Building (Visual Studio 2013)
 
+- Start VS2013 as Administrator (required to register ActiveX control)
+- In visual studio, right click the WebRTC_ATL project node
+-- Select "Rebuild Project". 
 
-Start VS2013 as Administrator (required to register ActiveX control)
-In visual studio, right click the WebRTC_ATL project node, and select "Rebuild Project". Once built you can just "Build Project" but "Rebuild..." will build all deps, including WebRTC itself.
+Once built you can just "Build Project" but "Rebuild..." will build all deps, including WebRTC itself.
 
