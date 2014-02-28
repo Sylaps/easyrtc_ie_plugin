@@ -20,8 +20,8 @@ Clone the repository using ```git```.
 
 ### Important depot_tools Commands
 
-Get the source code -> ```gclient sync --nohooks```
-Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```
+- Get the source code -> ```gclient sync --nohooks```
+- Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```
 
 ### Directory Setup
 
