@@ -20,9 +20,11 @@ Add the following environment variables:
 - ```GYP_MSVS_VERSION``` ->  ```2013```
 - ```WDK_DIR``` -> ```c:\WinDDK\7600.16385.1``` (or somewhere else if you chose a custom dir)
 
+### Getting The Code
+
 - Clone the repository using ```gclient config http://webrtc.googlecode.com/svn/trunk```.
-- Get the source code -> ```gclient sync --nohooks```
-- Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```
+- Get the source code -> ```gclient sync --nohooks```.
+- Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```.
 
 ### Directory Setup
 
