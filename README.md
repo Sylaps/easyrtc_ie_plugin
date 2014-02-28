@@ -9,6 +9,10 @@ Install depot_tools:
 
 Follow the [instructions for installing the Chromium build deps for Visual Studio 2013](http://www.chromium.org/developers/how-tos/build-instructions-windows#TOC-Setting-up-the-environment-for-Visual-Studio-2013)
 
+### Environment Variables
+
+You can create a shortcut to the environment variable dialog with the path: ```%windir%\System32\rundll32.exe sysdm.cpl,EditEnvironmentVariables```
+
 Add the following environment variables:
 
 - ```GYP_DEFINES``` -> ```component=shared_library build_with_chromium=0```
@@ -16,10 +20,7 @@ Add the following environment variables:
 - ```GYP_MSVS_VERSION``` ->  ```2013```
 - ```WDK_DIR``` -> ```c:\WinDDK\7600.16385.1``` (or somewhere else if you chose a custom dir)
 
-Clone the repository using ```git```.
-
-### Important depot_tools Commands
-
+- Clone the repository using ```gclient config http://webrtc.googlecode.com/svn/trunk```.
 - Get the source code -> ```gclient sync --nohooks```
 - Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```
 
@@ -34,15 +35,19 @@ Place this repo in the same directory as ```trunk/``` as cloned from ```gclient 
 <dir>/easyrtc_ie_plugin/
 ```
 
-Open the ```<dir>/trunk/all.sln``` file in Visual Studio.
+Open the ```<dir>/trunk/all.sln``` file in Visual Studio (VS2013).
 Right click root project node and "Add Existing Project..."
 Choose ```<dir>/easyrtc_ie_plugin/WebRTC_ATL.vcxproj```
 
 ## Building (Visual Studio 2013)
 
 - Start VS2013 as Administrator (required to register ActiveX control)
-- In visual studio, right click the WebRTC_ATL project node
+- In VS2013, right click the WebRTC_ATL project node
 -- Select "Rebuild Project". 
 
-Once built you can just "Build Project" but "Rebuild..." will build all deps, including WebRTC itself.
+Once built, you can avoid rebuilding WebRTC by just choosing "Build Project".
 
+# Useful Links
+
+- [webrtc.org](http://www.webrtc.org/)
+- [WebRTC Development - Getting Started](http://www.webrtc.org/reference/getting-started)
