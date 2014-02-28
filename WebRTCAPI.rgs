@@ -1,0 +1,33 @@
+HKCR
+{
+	WebRTC.API = s 'WebRTCAPI'
+	{
+		CLSID = s '{0E8D29CE-D2D0-459A-8009-3B34EFBC43F0}'
+	}
+	WebRTC = s 'WebRTCAPI'
+	{
+		CLSID = s '{0E8D29CE-D2D0-459A-8009-3B34EFBC43F0}'		
+		CurVer = s 'WebRTC.API'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {0E8D29CE-D2D0-459A-8009-3B34EFBC43F0} = s 'WebRTCAPI'
+		{
+			ProgID = s 'WebRTC.API'
+			VersionIndependentProgID = s 'WebRTC'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			ForceRemove Control
+			ForceRemove 'ToolboxBitmap32' = s '%MODULE%, 112'
+			MiscStatus = s '0'
+			{
+			    '1' = s '%OLEMISC%'
+			}
+			TypeLib = s '{7E363125-9FE8-4815-A6CC-0AF866452BAC}'
+			Version = s '1.0'
+		}
+	}
+}

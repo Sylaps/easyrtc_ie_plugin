@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+    <title>ATL test page for object WebRTCAPI</title>
+</head>
+<body>
+    <h1>WebRTC ATL ActiveX Control</h1>
+    
+    <object id="WebRTCAPI"
+            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+            height=400
+            width=800></object>
+    
+    <script type="text/javascript">
+        var obj = document.getElementById("WebRTCAPI").object;
+        setTimeout(function () {
+            obj.run();
+        }, 0);
+    </script>
+
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+// WebRTC_ATL.idl : IDL source for WebRTC_ATL
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (WebRTC_ATL.tlb) and marshalling code.
+
+#include "olectl.h"
+import "oaidl.idl";
+import "ocidl.idl";
+
+
+
+
+[
+	object,
+	uuid(AC354B7E-86E1-4952-BA02-ABA7CF069E2A),
+	dual,
+	nonextensible,
+	pointer_default(unique)
+]
+interface IWebRTCAPI : IDispatch{ 
+	[id(2), helpstring("method HelloWorld")]HRESULT hello([out, retval]BSTR* pRet);
+	[id(3), helpstring("method run()")]HRESULT run();
+};
+
+[
+	uuid(7E363125-9FE8-4815-A6CC-0AF866452BAC),
+	version(1.1),
+	helpstring("WebRTC ATL Type Library")
+]
+library WebRTC_ATLLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(41D6F559-CC67-4897-A6A7-FAEE37FED5D3)		
+	]
+	dispinterface _IWebRTCAPIEvents
+	{
+		properties:
+		methods:
+	};
+	[
+		uuid(0E8D29CE-D2D0-459A-8009-3B34EFBC43F0),		
+		control
+	]
+	coclass WebRTCAPI
+	{
+		[default] interface IWebRTCAPI;
+		[default, source] dispinterface _IWebRTCAPIEvents;
+	};
+};
+
