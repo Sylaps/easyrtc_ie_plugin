@@ -1,7 +1,7 @@
 easyrtc_ie_plugin
 =================
 
-# # Deps
+## Deps
 
 Install depot_tools:
 
@@ -18,12 +18,12 @@ Add the following environment variables:
 
 Clone the repository using ```git```.
 
-# # # Important depot_tools Commands
+### Important depot_tools Commands
 
 Get the source code -> ```gclient sync --nohooks```
 Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```
 
-# # Building
+## Building
 
 Place this repo in the same directory as ```trunk/``` as cloned from ```gclient sync```.
 
