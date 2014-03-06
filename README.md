@@ -24,6 +24,7 @@ Add the following environment variables:
 
 - Clone the repository using ```gclient config http://webrtc.googlecode.com/svn/trunk```.
 - Get the source code -> ```gclient sync --nohooks```.
+- Set ```"win_third_party_warn_as_error" : "false",``` in the file  ```<dir>/trunk/build/common.gypi```.
 - Create project files with gyp (overwriting any existing ones!) -> ```gclient runhooks --force```.
 
 ### Directory Setup
