@@ -32,15 +32,30 @@ class ATL_NO_VTABLE CWebRTCAPI :
 	public IProvideClassInfo2Impl<&CLSID_WebRTCAPI, &__uuidof(_IWebRTCAPIEvents), &LIBID_WebRTC_ATLLib>,
 	public IObjectSafetyImpl<CWebRTCAPI, INTERFACESAFE_FOR_UNTRUSTED_CALLER>,
 	public CComCoClass<CWebRTCAPI, &CLSID_WebRTCAPI>,
-	public CComControl<CWebRTCAPI>
+	public CComControl<CWebRTCAPI>,
+	public JavaScriptCallback
 {
 public:
-
 
 	CWebRTCAPI()
 	{
 		m_bWindowOnly = true;
 	}
+
+	BSTR Convert(const std::string& s)
+	{
+		return CComBSTR(s.c_str()).Detach();
+	}
+
+	virtual void SendToBrowser(const std::string& json);	// from JavaScriptCallback
+	/*
+	{
+		BSTR bjson = Convert(json);
+		Fire_EventToBrowser(bjson);
+
+//		Fire_EventToBrowser(L"{ \"fake\" : \"json\" }");
+	}
+	*/
 
 DECLARE_OLEMISC_STATUS(OLEMISC_RECOMPOSEONRESIZE |
 	OLEMISC_CANTLINKINSIDE |
@@ -130,6 +145,7 @@ public:
 	
 	IFACEMETHOD(run)();
 	IFACEMETHOD(hello)(BSTR *pRet);
+	IFACEMETHOD(pushToNative)(BSTR cmd, BSTR json);
 	
 	HRESULT OnDraw(ATL_DRAWINFO& di)
 	{

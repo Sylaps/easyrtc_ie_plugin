@@ -42,176 +42,207 @@
 #include "talk/media/base/videorenderer.h"
 
 
-class MainWndCallback {
- public:
-  virtual void StartLogin(const std::string& server, int port) = 0;
-  virtual void DisconnectFromServer() = 0;
-  virtual void ConnectToPeer(int peer_id) = 0;
-  virtual void DisconnectFromCurrentPeer() = 0;
-  virtual void UIThreadCallback(int msg_id, void* data) = 0;
-  virtual void Close() = 0;
- protected:
-  virtual ~MainWndCallback() {}
+class MainWndCallback
+{
+public:
+	virtual void StartLogin(const std::string& server, int port) = 0;
+	virtual void DisconnectFromServer() = 0;
+	virtual void ConnectToPeer(int peer_id) = 0;
+	virtual void DisconnectFromCurrentPeer() = 0;
+	virtual void UIThreadCallback(int msg_id, void* data) = 0;
+	virtual void Close() = 0;
+
+protected:
+	virtual ~MainWndCallback() { }
 };
 
 // Pure virtual interface for the main window.
-class MainWindow {
- public:
-  virtual ~MainWindow() {}
+class MainWindow
+{
+public:
+	virtual ~MainWindow()
+	{
+	}
 
-  enum UI {
-    CONNECT_TO_SERVER,
-    LIST_PEERS,
-    STREAMING,
-  };
+	enum UI
+	{
+		CONNECT_TO_SERVER,
+		LIST_PEERS,
+		STREAMING,
+	};
 
-  virtual void RegisterObserver(MainWndCallback* callback) = 0;
+	virtual void RegisterObserver(MainWndCallback* callback) = 0;
 
-  virtual bool IsWindow() = 0;
-  virtual void MessageBox(const char* caption, const char* text,
-                          bool is_error) = 0;
+	virtual bool IsWindow() = 0;
+	virtual void MessageBox(const char* caption, const char* text, bool is_error) = 0;
 
-  virtual UI current_ui() = 0;
+	virtual UI current_ui() = 0;
 
-  virtual void SwitchToConnectUI() = 0;
-  virtual void SwitchToPeerList(const Peers& peers) = 0;
-  virtual void SwitchToStreamingUI() = 0;
+	virtual void SwitchToConnectUI() = 0;
+	virtual void SwitchToPeerList(const Peers& peers) = 0;
+	virtual void SwitchToStreamingUI() = 0;
 
-  virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video) = 0;
-  virtual void StopLocalRenderer() = 0;
-  virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) = 0;
-  virtual void StopRemoteRenderer() = 0;
+	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video) = 0;
+	virtual void StopLocalRenderer() = 0;
+	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) = 0;
+	virtual void StopRemoteRenderer() = 0;
 
-  virtual void QueueUIThreadCallback(int msg_id, void* data) = 0;
+	virtual void QueueUIThreadCallback(int msg_id, void* data) = 0;
 };
 
 #ifdef WIN32
 
-class MainWnd : public MainWindow {
- public:
-  static const wchar_t kClassName[];
+class MainWnd : public MainWindow
+{
+public:
+	static const wchar_t kClassName[];
 
-  enum WindowMessages {
-    UI_THREAD_CALLBACK = WM_APP + 1,
-  };
+	enum WindowMessages
+	{
+		UI_THREAD_CALLBACK = WM_APP + 1,
+	};
 
-  MainWnd();
-  ~MainWnd();
+	MainWnd();
+	~MainWnd();
 
-  bool Create(HWND hwnd);
-  bool Destroy();
-  bool PreTranslateMessage(MSG* msg);
+	bool Create(HWND hwnd);
+	bool Destroy();
+	bool PreTranslateMessage(MSG* msg);
 
-  //HACK
-  void OnPaint();
+	//HACK
+	void OnPaint();
 
-  virtual void RegisterObserver(MainWndCallback* callback);
-  virtual bool IsWindow();
-  virtual void SwitchToConnectUI();
-  virtual void SwitchToPeerList(const Peers& peers);
-  virtual void SwitchToStreamingUI();
-  virtual void MessageBox(const char* caption, const char* text,
-                          bool is_error);
-  virtual UI current_ui() { return ui_; }
+	virtual void RegisterObserver(MainWndCallback* callback);
+	virtual bool IsWindow();
+	virtual void SwitchToConnectUI();
+	virtual void SwitchToPeerList(const Peers& peers);
+	virtual void SwitchToStreamingUI();
+	virtual void MessageBox(const char* caption, const char* text,
+		bool is_error);
+	virtual UI current_ui()
+	{
+		return ui_;
+	}
 
-  virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
-  virtual void StopLocalRenderer();
-  virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video);
-  virtual void StopRemoteRenderer();
+	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
+	virtual void StopLocalRenderer();
+	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video);
+	virtual void StopRemoteRenderer();
 
-  virtual void QueueUIThreadCallback(int msg_id, void* data);
+	virtual void QueueUIThreadCallback(int msg_id, void* data);
 
-  HWND handle() const { return wnd_; }
+	HWND handle() const
+	{
+		return wnd_;
+	}
 
-  class VideoRenderer : public webrtc::VideoRendererInterface {
-   public:
-    VideoRenderer(HWND wnd, int width, int height,
-                  webrtc::VideoTrackInterface* track_to_render);
-    virtual ~VideoRenderer();
+	class VideoRenderer : public webrtc::VideoRendererInterface
+	{
+	public:
+		VideoRenderer(HWND wnd, int width, int height,
+			webrtc::VideoTrackInterface* track_to_render);
+		virtual ~VideoRenderer();
 
-    void Lock() {
-      ::EnterCriticalSection(&buffer_lock_);
-    }
+		void Lock()
+		{
+			::EnterCriticalSection(&buffer_lock_);
+		}
 
-    void Unlock() {
-      ::LeaveCriticalSection(&buffer_lock_);
-    }
+		void Unlock()
+		{
+			::LeaveCriticalSection(&buffer_lock_);
+		}
 
-    // VideoRendererInterface implementation
-    virtual void SetSize(int width, int height);
-    virtual void RenderFrame(const cricket::VideoFrame* frame);
+		// VideoRendererInterface implementation
+		virtual void SetSize(int width, int height);
+		virtual void RenderFrame(const cricket::VideoFrame* frame);
 
-    const BITMAPINFO& bmi() const { return bmi_; }
-    const uint8* image() const { return image_.get(); }
+		const BITMAPINFO& bmi() const
+		{
+			return bmi_;
+		}
+		const uint8* image() const
+		{
+			return image_.get();
+		}
 
-   protected:
-    enum {
-      SET_SIZE,
-      RENDER_FRAME,
-    };
+	protected:
+		enum
+		{
+			SET_SIZE,
+			RENDER_FRAME,
+		};
 
-    HWND wnd_;
-    BITMAPINFO bmi_;
-    talk_base::scoped_ptr<uint8[]> image_;
-    CRITICAL_SECTION buffer_lock_;
-    talk_base::scoped_refptr<webrtc::VideoTrackInterface> rendered_track_;
-  };
+		HWND wnd_;
+		BITMAPINFO bmi_;
+		talk_base::scoped_ptr<uint8[]> image_;
+		CRITICAL_SECTION buffer_lock_;
+		talk_base::scoped_refptr<webrtc::VideoTrackInterface> rendered_track_;
+	};
 
-  // A little helper class to make sure we always to proper locking and
-  // unlocking when working with VideoRenderer buffers.
-  template <typename T>
-  class AutoLock {
-   public:
-    explicit AutoLock(T* obj) : obj_(obj) { obj_->Lock(); }
-    ~AutoLock() { obj_->Unlock(); }
-   protected:
-    T* obj_;
-  };
+	// A little helper class to make sure we always to proper locking and
+	// unlocking when working with VideoRenderer buffers.
+	template <typename T>
+	class AutoLock
+	{
+	public:
+		explicit AutoLock(T* obj) : obj_(obj)
+		{
+			obj_->Lock();
+		}
+		~AutoLock()
+		{
+			obj_->Unlock();
+		}
+	protected:
+		T* obj_;
+	};
 
- protected:
-  enum ChildWindowID {
-    EDIT_ID = 1,
-    BUTTON_ID,
-    LABEL1_ID,
-    LABEL2_ID,
-    LISTBOX_ID,
-  };
+protected:
+	enum ChildWindowID
+	{
+		EDIT_ID = 1,
+		BUTTON_ID,
+		LABEL1_ID,
+		LABEL2_ID,
+		LISTBOX_ID,
+	};
 
 
-  void OnDestroyed();
+	void OnDestroyed();
 
-  void OnDefaultAction();
+	void OnDefaultAction();
 
-  bool OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result);
+	bool OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result);
 
-  static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
-  static bool RegisterWindowClass();
+	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
+	static bool RegisterWindowClass();
 
-  void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name,
-                         DWORD control_style, DWORD ex_style);
-  void CreateChildWindows();
+	void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name,
+		DWORD control_style, DWORD ex_style);
+	void CreateChildWindows();
 
-  void LayoutConnectUI(bool show);
-  void LayoutPeerListUI(bool show);
+	void LayoutConnectUI(bool show);
+	void LayoutPeerListUI(bool show);
 
-  void HandleTabbing();
+	void HandleTabbing();
 
- private:
-  talk_base::scoped_ptr<VideoRenderer> local_renderer_;
-  talk_base::scoped_ptr<VideoRenderer> remote_renderer_;
-  UI ui_;
-  HWND wnd_;
-  DWORD ui_thread_id_;
-  HWND edit1_;
-  HWND edit2_;
-  HWND label1_;
-  HWND label2_;
-  HWND button_;
-  HWND listbox_;
-  bool destroyed_;
-  void* nested_msg_;
-  MainWndCallback* callback_;
-  static ATOM wnd_class_;
+private:
+	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
+	talk_base::scoped_ptr<VideoRenderer> remote_renderer_;
+	UI ui_;
+	HWND wnd_;
+	DWORD ui_thread_id_;
+	HWND edit1_;
+	HWND edit2_;
+	HWND label1_;
+	HWND label2_;
+	HWND button_;
+	HWND listbox_;
+	bool destroyed_;
+	void* nested_msg_;
+	MainWndCallback* callback_;
+	static ATOM wnd_class_;
 };
 #endif  // WIN32
 

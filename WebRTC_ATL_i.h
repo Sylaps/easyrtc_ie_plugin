@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Fri Feb 28 10:09:28 2014
+/* at Wed Mar 26 12:37:14 2014
  */
 /* Compiler settings for WebRTC_ATL.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 
@@ -100,6 +100,10 @@ EXTERN_C const IID IID_IWebRTCAPI;
         
         virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE run( void) = 0;
         
+        virtual /* [helpstring][id] */ HRESULT STDMETHODCALLTYPE pushToNative( 
+            /* [in] */ BSTR cmd,
+            /* [in] */ BSTR json) = 0;
+        
     };
     
     
@@ -165,6 +169,11 @@ EXTERN_C const IID IID_IWebRTCAPI;
         /* [helpstring][id] */ HRESULT ( STDMETHODCALLTYPE *run )( 
             IWebRTCAPI * This);
         
+        /* [helpstring][id] */ HRESULT ( STDMETHODCALLTYPE *pushToNative )( 
+            IWebRTCAPI * This,
+            /* [in] */ BSTR cmd,
+            /* [in] */ BSTR json);
+        
         END_INTERFACE
     } IWebRTCAPIVtbl;
 
@@ -206,6 +215,9 @@ EXTERN_C const IID IID_IWebRTCAPI;
 
 #define IWebRTCAPI_run(This)	\
     ( (This)->lpVtbl -> run(This) ) 
+
+#define IWebRTCAPI_pushToNative(This,cmd,json)	\
+    ( (This)->lpVtbl -> pushToNative(This,cmd,json) ) 
 
 #endif /* COBJMACROS */
 

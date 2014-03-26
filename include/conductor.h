@@ -37,108 +37,165 @@
 #include "main_wnd.h"
 #include "peer_connection_client.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
+#include "talk/app/webrtc/mediaconstraintsinterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "talk/base/scoped_ptr.h"
 
-namespace webrtc {
-class VideoCaptureModule;
+namespace webrtc
+{
+	class VideoCaptureModule;
 }  // namespace webrtc
 
-namespace cricket {
-class VideoRenderer;
+namespace cricket
+{
+	class VideoRenderer;
 }  // namespace cricket
 
+class JavaScriptCallback
+{
+public:
+	virtual void SendToBrowser(const std::string& json) = 0;
+
+protected:
+	virtual ~JavaScriptCallback()
+	{
+	}
+};
+
 class Conductor
-  : public webrtc::PeerConnectionObserver,
-    public webrtc::CreateSessionDescriptionObserver,
-    public PeerConnectionClientObserver,
-    public MainWndCallback {
- public:
-  enum CallbackID {
-    MEDIA_CHANNELS_INITIALIZED = 1,
-    PEER_CONNECTION_CLOSED,
-    SEND_MESSAGE_TO_PEER,
-    PEER_CONNECTION_ERROR,
-    NEW_STREAM_ADDED,
-    STREAM_REMOVED,
-  };
+	: public webrtc::PeerConnectionObserver,
+	public webrtc::CreateSessionDescriptionObserver,
+	public webrtc::MediaConstraintsInterface,
+	public PeerConnectionClientObserver,
+	public MainWndCallback
+{
+public:
+	enum CallbackID
+	{
+		MEDIA_CHANNELS_INITIALIZED = 1,
+		PEER_CONNECTION_CLOSED,
+		SEND_MESSAGE_TO_PEER,
+		SEND_MESSAGE_TO_DUDE,
+		SEND_MESSAGE_TO_UPJS,
+		PEER_CONNECTION_ERROR,
+		NEW_STREAM_ADDED,
+		STREAM_REMOVED,
+	};
 
-  Conductor(PeerConnectionClient* client, MainWindow* main_wnd);
+	Conductor(PeerConnectionClient* client, MainWindow* main_wnd);
 
-  bool connection_active() const;
+	bool connection_active() const;
 
-  virtual void Close();
+	virtual void Close();
 
- protected:
-  ~Conductor();
-  bool InitializePeerConnection();
-  void DeletePeerConnection();
-  void EnsureStreamingUI();
-  void AddStreams();
-  cricket::VideoCapturer* OpenVideoCaptureDevice();
+	void candidate(std::string json);
+	void gotanswer(std::string json);
+	void getlocalvideo();	// just call InitializePeerConnection
+	void gotoffer(std::string);
+	void createoffer();
 
-  //
-  // PeerConnectionObserver implementation.
-  //
-  virtual void OnError();
-  virtual void OnStateChange(
-      webrtc::PeerConnectionObserver::StateType state_changed) {}
-  virtual void OnAddStream(webrtc::MediaStreamInterface* stream);
-  virtual void OnRemoveStream(webrtc::MediaStreamInterface* stream);
-  virtual void OnRenegotiationNeeded() {}
-  virtual void OnIceChange() {}
-  virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
+	Constraints mandatory_;
+	Constraints optional_;
 
-  //
-  // PeerConnectionClientObserver implementation.
-  //
+	virtual const Constraints& GetMandatory() const
+	{
+		return mandatory_;
+	}
 
-  virtual void OnSignedIn();
+	virtual const Constraints& GetOptional() const
+	{
+		return optional_;
+	}
 
-  virtual void OnDisconnected();
+	void SetAllowDtlsSctpDataChannels()
+	{
+		mandatory_.push_back(Constraint(MediaConstraintsInterface::kEnableDtlsSrtp, "true"));
+//		SetMandatory(MediaConstraintsInterface::kEnableDtlsSrtp, true);
+	}
 
-  virtual void OnPeerConnected(int id, const std::string& name);
+//	virtual const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
+//	virtual const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);
 
-  virtual void OnPeerDisconnected(int id);
+	JavaScriptCallback *that;
 
-  virtual void OnMessageFromPeer(int peer_id, const std::string& message);
+protected:
+	~Conductor();
 
-  virtual void OnMessageSent(int err);
+	bool InitializePeerConnection();	
+	void DeletePeerConnection();
+	void EnsureStreamingUI();
+	void AddStreams();
+	cricket::VideoCapturer* OpenVideoCaptureDevice();
 
-  virtual void OnServerConnectionFailure();
+	//
+	// PeerConnectionObserver implementation.
+	//
+	virtual void OnError();
+	virtual void OnStateChange(
+		webrtc::PeerConnectionObserver::StateType state_changed)
+	{
+	}
+	virtual void OnAddStream(webrtc::MediaStreamInterface* stream);
+	virtual void OnRemoveStream(webrtc::MediaStreamInterface* stream);
+	virtual void OnRenegotiationNeeded()
+	{
+	}
+	virtual void OnIceChange()
+	{
+	}
+	virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
-  //
-  // MainWndCallback implementation.
-  //
+	//
+	// PeerConnectionClientObserver implementation.
+	//
 
-  virtual void StartLogin(const std::string& server, int port);
+	virtual void OnSignedIn();
 
-  virtual void DisconnectFromServer();
+	virtual void OnDisconnected();
 
-  virtual void ConnectToPeer(int peer_id);
+	virtual void OnPeerConnected(int id, const std::string& name);
 
-  virtual void DisconnectFromCurrentPeer();
+	virtual void OnPeerDisconnected(int id);
 
-  virtual void UIThreadCallback(int msg_id, void* data);
+	virtual void OnMessageFromPeer(int peer_id, const std::string& message);
 
-  // CreateSessionDescriptionObserver implementation.
-  virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
-  virtual void OnFailure(const std::string& error);
+	virtual void OnMessageSent(int err);
 
- protected:
-  // Send a message to the remote peer.
-  void SendMessage(const std::string& json_object);
+	virtual void OnServerConnectionFailure();
 
-  int peer_id_;
-  talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
-  talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
-      peer_connection_factory_;
-  PeerConnectionClient* client_;
-  MainWindow* main_wnd_;
-  std::deque<std::string*> pending_messages_;
-  std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> >
-      active_streams_;
-  std::string server_;
+	//
+	// MainWndCallback implementation.
+	//
+
+	virtual void StartLogin(const std::string& server, int port);
+
+	virtual void DisconnectFromServer();
+
+	virtual void ConnectToPeer(int peer_id);
+
+	virtual void DisconnectFromCurrentPeer();
+
+	virtual void UIThreadCallback(int msg_id, void* data);
+
+	// CreateSessionDescriptionObserver implementation.
+	virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
+	virtual void OnFailure(const std::string& error);
+
+protected:
+	// Send a message to the remote peer.
+	void SendMessage(const std::string& json_object);
+
+	int peer_id_;
+	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
+	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>peer_connection_factory_;
+
+	PeerConnectionClient* client_;
+	MainWindow* main_wnd_;
+
+	std::deque<std::string*> pending_messages_;
+	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> >
+		active_streams_;
+	std::string server_;
 };
 
 #endif  // PEERCONNECTION_SAMPLES_CLIENT_CONDUCTOR_H_

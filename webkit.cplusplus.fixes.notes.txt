@@ -1,0 +1,39 @@
+
+Win32Window::~Win32Window() {
+// gdh   ASSERT(NULL == wnd_);
+
+void Win32Window::Destroy() {
+// gdh  VERIFY(::DestroyWindow(wnd_) != FALSE);
+}
+
+
+bool Win32DeviceManager::Init() {
+	// gdh    this will be done by activex, hopefully
+/*		
+	if (!initialized()) {
+    HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);	// cannot change thread mode after it is set
+    need_couninitialize_ = SUCCEEDED(hr);
+    if (FAILED(hr)) {
+      LOG(LS_ERROR) << "CoInitialize failed, hr=" << hr;
+      if (hr != RPC_E_CHANGED_MODE) {
+        return false;
+      }
+    }
+    if (!watcher()->Start()) {
+      return false;
+    }
+    set_initialized(true);
+  }
+*/
+    set_initialized(true);		// gdh
+  return true;
+}
+
+
+
+DeviceInfoDS::DeviceInfoDS(const int32_t id)
+    : DeviceInfoImpl(id), _dsDevEnum(NULL), _dsMonikerDevEnum(NULL),
+      _CoUninitializeIsRequired(true)
+{
+	// gdh comment out the entire body of this method
+}

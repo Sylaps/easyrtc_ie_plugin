@@ -21,6 +21,7 @@ import "ocidl.idl";
 interface IWebRTCAPI : IDispatch{ 
 	[id(2), helpstring("method HelloWorld")]HRESULT hello([out, retval]BSTR* pRet);
 	[id(3), helpstring("method run()")]HRESULT run();
+	[id(4), helpstring("method")]HRESULT pushToNative([in]BSTR cmd, [in]BSTR json);
 };
 
 [
@@ -38,6 +39,7 @@ library WebRTC_ATLLib
 	{
 		properties:
 		methods:
+			[id(1)] void EventToBrowser([in] BSTR json);
 	};
 	[
 		uuid(0E8D29CE-D2D0-459A-8009-3B34EFBC43F0),		

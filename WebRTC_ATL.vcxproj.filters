@@ -28,9 +28,6 @@
     <ClCompile Include="src\dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\main.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\main_wnd.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -109,6 +106,7 @@
     </None>
     <None Include=".gitignore" />
     <None Include="README.md" />
+    <None Include="ie.js" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="WebRTC_ATL.idl">
