@@ -29,10 +29,13 @@ function register(ax) {
 
 var authjson = { "msgType" : "authenticate", "msgData" : {"apiVersion" : "1.0.10", "applicationName" : "undefined" } };
 
+var hangupjson = { "msgType" : "hangup", "targetEasyrtcid" : "undefined" };
+
 var offerjson = { "msgType" : "offer",
 		"targetEasyrtcid" : "youaddthislater",
 		"msgData" : 
 		{ "sdp" : "", "type" : "offer" }};
+
 var answerjson = { "msgType" : "answer",
 		"targetEasyrtcid" : "youaddthislater",
 		"msgData" : 
@@ -130,6 +133,11 @@ var authorizationCallback = function (json) {
 //	}
 
 };
+
+function hangup() {
+	hangupjson.targetEasyrtcid = remotertcid;
+	socket.emit('easyrtcCmd', hangupjson, function() { });
+}
 
 function offer2(sdp) {
 //	document.getElementById('divLog').innerHTML += 'offer(' + rtcid + ')<br>';

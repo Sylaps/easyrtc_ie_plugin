@@ -185,6 +185,7 @@ if (msg.message == WM_CLOSE)
 	}
 
 	// here we have a working shutdown:
+	PostQuitMessage(0);
 	client.disconnect_all();
 //	client.SignOut();
 	conductor->Close();
