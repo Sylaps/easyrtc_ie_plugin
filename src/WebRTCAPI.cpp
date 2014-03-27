@@ -67,6 +67,7 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	int a = cmd.find("gotanswer");
 	int o = cmd.find("gotoffer");
 	int m = cmd.find("makeoffer");
+	int h = cmd.find("hangup");
 	int t = cmd.find("gotcandidate");
 //	int i = cmd.find("init");
 //	int c = cmd.find("conn");
@@ -77,8 +78,8 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 		gdhConductor->gotoffer(json);
 	else if (a > -1)
 		gdhConductor->gotanswer(json);
-//	else if (i > -1)
-//		gdhConductor->getlocalvideo();
+	else if (h > -1)
+		gdhConductor->hangup();
 	else if (m > -1)
 		gdhConductor->createoffer();
 	else if (t > -1)

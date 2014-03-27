@@ -122,6 +122,15 @@ this seems to do a lot, but vid connection not established
 	//peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
 }
 
+void Conductor::hangup()		// gdh
+{
+	if (peer_connection_.get())
+	{
+		client_->SendHangUp(peer_id_);
+		DeletePeerConnection();
+	}
+}
+
 void Conductor::gotanswer(std::string remotesdp)		// gdh
 {
 	std::string type = "answer";

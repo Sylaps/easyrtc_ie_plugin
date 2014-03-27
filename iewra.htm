@@ -30,7 +30,7 @@ http://social.msdn.microsoft.com/Forums/ie/en-US/4491d5e8-e25b-4976-bc19-6bc54eb
 	<button onclick="auth()">auth</button>
 	<button onclick="run()">run</button>
 	<button onclick="init()">init</button>
-	<button onclick="conn()">conn</button>
+	<button onclick="hangup()">hangup</button>
 	<button onclick="debug()">debug</button>
 	<button onclick="quit()">quit</button>
 	<br>
@@ -63,8 +63,8 @@ http://social.msdn.microsoft.com/Forums/ie/en-US/4491d5e8-e25b-4976-bc19-6bc54eb
 			obj.pushToNative('init', '');
 		}
 
-		function conn() {
-			obj.pushToNative('conn', '');
+		function hangup() {
+			obj.pushToNative('hangup', '');
 		}
 
 		function debug() {

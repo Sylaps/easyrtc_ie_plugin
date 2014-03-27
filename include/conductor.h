@@ -90,6 +90,7 @@ public:
 
 	void candidate(std::string json);
 	void gotanswer(std::string json);
+	void hangup();
 	void getlocalvideo();	// just call InitializePeerConnection
 	void gotoffer(std::string);
 	void createoffer();
