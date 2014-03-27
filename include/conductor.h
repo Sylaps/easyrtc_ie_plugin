@@ -75,7 +75,7 @@ public:
 		MEDIA_CHANNELS_INITIALIZED = 1,
 		PEER_CONNECTION_CLOSED,
 		SEND_MESSAGE_TO_PEER,
-		SEND_MESSAGE_TO_DUDE,
+//		SEND_MESSAGE_TO_DUDE,
 		SEND_MESSAGE_TO_UPJS,
 		PEER_CONNECTION_ERROR,
 		NEW_STREAM_ADDED,
@@ -116,7 +116,7 @@ public:
 //	virtual const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
 //	virtual const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);
 
-	JavaScriptCallback *that;
+	JavaScriptCallback *javascriptCallback_;
 
 protected:
 	~Conductor();
