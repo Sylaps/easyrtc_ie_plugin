@@ -160,9 +160,9 @@ void Conductor::createoffer()		// gdh
 //	main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_DUDE, 0);
 }
 
-const webrtc::MediaConstraintsInterface::Constraint mcic(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
-webrtc::MediaConstraintsInterface::Constraints dude;
-webrtc::MediaConstraintsInterface::Constraints nothing;
+//jconst webrtc::MediaConstraintsInterface::Constraint mcic(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
+//jwebrtc::MediaConstraintsInterface::Constraints dude;
+//jwebrtc::MediaConstraintsInterface::Constraints nothing;
 
 // const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
 // const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);

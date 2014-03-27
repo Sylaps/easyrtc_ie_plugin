@@ -39,6 +39,15 @@ std::string BSTR2string(BSTR bstr)
 
 Conductor* gdhConductor = 0;
 
+void quiter()
+{
+	if (gdhConductor != 0)
+	{
+		gdhConductor->Close();
+		PostQuitMessage(0);
+	}
+}
+
 IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 {
 //	std::wstring ws(bjson, SysStringLen(bjson));
@@ -59,22 +68,18 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	int o = cmd.find("gotoffer");
 	int m = cmd.find("makeoffer");
 	int t = cmd.find("gotcandidate");
-	int i = cmd.find("init");
-	int c = cmd.find("conn");
+//	int i = cmd.find("init");
+//	int c = cmd.find("conn");
 	int q = cmd.find("quit");
 	int d = cmd.find("debug");
 
 
 	if (o > -1)
-	{
 		gdhConductor->gotoffer(json);
-//		Json::Value kkk = (jsonobj["sdp"]);
-//		gdhConductor->gotoffer(writer.write(jsonobj["sdp"]));
-	}
 	else if (a > -1)
 		gdhConductor->gotanswer(json);
-	else if (i > -1)
-		gdhConductor->getlocalvideo();
+//	else if (i > -1)
+//		gdhConductor->getlocalvideo();
 	else if (m > -1)
 		gdhConductor->createoffer();
 	else if (t > -1)
@@ -103,18 +108,18 @@ void CWebRTCAPI::SendToBrowser(const std::string& json)		// from JavaScriptCallb
 
 void logtofile()
 {
-	bool debug = true;
-	std::string log = "verbose";
+//	bool debug = true;
+//	std::string log = "verbose";
 
-	if (debug)
+//	if (debug)
 	{
 		talk_base::LogMessage::LogToDebug(talk_base::LS_VERBOSE);
 	}
 
-	if (!log.empty())
+//	if (!log.empty())
 	{
 		talk_base::FileStream *fs = new talk_base::FileStream();
-		if (!fs->Open("gdh_webrtcapi.log", "w", NULL))
+		if (!fs->Open("webrtcapi.log", "w", NULL))
 		{
 			LOG(INFO) << "Could not open file";
 		}
@@ -126,7 +131,7 @@ void logtofile()
 }
 
 /*
-STDAPI DllCanUnloadNow()
+STDAPI D llCanUnloadNow()
 {
 	return S_OK;
 }
@@ -170,6 +175,32 @@ IFACEMETHODIMP CWebRTCAPI::run()
 
 	while ((gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1)
 	{
+		if (msg.message == WM_CLOSE || msg.message == 33176)
+			break;
+
+		if (// msg.message == 49819 ||
+			msg.message == 33176 ||
+//			msg.message == 33172 ||
+			msg.message == 1792 ||
+			msg.message == WM_CLOSE)
+		{
+LOG(INFO) << gettime() << " " << msg.hwnd << " " << msg.message << " " << msg.lParam << " " << msg.wParam;
+// break;
+		}
+
+
+/*
+if (msg.message == WM_CLOSE)
+{
+//	client.disconnect_all();
+	conductor->Close();
+//	PostQuitMessage(0);
+	break;
+}
+*/
+
+//if (msg.message == 49819)
+//break;
 		if (!mainWindow.PreTranslateMessage(&msg))
 		{
 			::TranslateMessage(&msg);
@@ -177,8 +208,12 @@ IFACEMETHODIMP CWebRTCAPI::run()
 		}
 	}
 
+client.disconnect_all();
+conductor->Close();
+
 	CoUninitialize();
 	talk_base::CleanupSSL();
+	gdhConductor = 0;
 
 								// is this second loop "better" than the first?
 	/*
@@ -196,7 +231,6 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	}
 	*/
 
-	gdhConductor = NULL;
 	return S_OK;
 }
 
