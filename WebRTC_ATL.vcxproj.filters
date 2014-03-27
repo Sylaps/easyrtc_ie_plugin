@@ -37,9 +37,6 @@
     <ClCompile Include="src\WebRTC_ATL.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\WebRTCAPI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
