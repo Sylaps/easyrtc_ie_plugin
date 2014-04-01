@@ -155,6 +155,7 @@
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\targetver.h" />
     <ClInclude Include="include\WebRTCAPI.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="WebRTC_ATL_i.h" />
     <ClInclude Include="include\_IWebRTCAPIEvents_CP.h" />
   </ItemGroup>
