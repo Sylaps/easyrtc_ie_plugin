@@ -28,17 +28,18 @@ SignTool=kSign /d $qEasyWebRTC IE Plugin$q /du $qhttp://www.easyrtc.com$q $f
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\WebRTC\trunk\build\Release\crnspr.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\trunk\build\Release\crnss.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\trunk\build\Release\crssl.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\trunk\build\Release\icui18n.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\trunk\build\Release\icuuc.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\trunk\build\Release\protobuf_lite.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\trunk\build\Release\WebRTC_ATL.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\x86\Microsoft.VC120.CRT\msvcp120.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\x86\Microsoft.VC120.CRT\msvcr120.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\crnspr.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\crnss.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\crssl.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\icui18n.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\icuuc.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\protobuf_lite.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "..\..\trunk\build\Release\WebRTC_ATL.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "msvcp120.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "msvcr120.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
-Source: "C:\WebRTC\EasyRTCActiveX\Msi\register_webrtc_plugin.bat"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "register_webrtc_plugin.bat"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
 
 [Run]
 Filename: "{userappdata}\WebRTCIEPlugin\register_webrtc_plugin.bat"
