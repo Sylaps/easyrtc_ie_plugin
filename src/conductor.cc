@@ -122,6 +122,15 @@ this seems to do a lot, but vid connection not established
 	//peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
 }
 
+void Conductor::hangup()		// gdh
+{
+	if (peer_connection_.get())
+	{
+		client_->SendHangUp(peer_id_);
+		DeletePeerConnection();
+	}
+}
+
 void Conductor::gotanswer(std::string remotesdp)		// gdh
 {
 	std::string type = "answer";
@@ -160,9 +169,9 @@ void Conductor::createoffer()		// gdh
 //	main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_DUDE, 0);
 }
 
-const webrtc::MediaConstraintsInterface::Constraint mcic(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
-webrtc::MediaConstraintsInterface::Constraints dude;
-webrtc::MediaConstraintsInterface::Constraints nothing;
+//jconst webrtc::MediaConstraintsInterface::Constraint mcic(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
+//jwebrtc::MediaConstraintsInterface::Constraints dude;
+//jwebrtc::MediaConstraintsInterface::Constraints nothing;
 
 // const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
 // const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);
@@ -601,12 +610,12 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 
 	case SEND_MESSAGE_TO_UPJS:
 		msg = reinterpret_cast<std::string*>(data);			// TODO you gotta delete this msg
-		that->SendToBrowser(*msg);
+		javascriptCallback_->SendToBrowser(*msg);
 		break;
-	case SEND_MESSAGE_TO_DUDE:
-		LOG(INFO) << "SEND_MESSAGE_TO_dude";
-		peer_connection_->CreateOffer(this, NULL);
-		break;
+//	case SEND_MESSAGE_TO_DUDE:
+//		LOG(INFO) << "SEND_MESSAGE_TO_dude";
+//		peer_connection_->CreateOffer(this, NULL);
+//		break;
 
 	case SEND_MESSAGE_TO_PEER:
 		LOG(INFO) << "SEND_MESSAGE_TO_PEER";
@@ -642,23 +651,23 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 		break;
 
 	case NEW_STREAM_ADDED: {
-							   webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
-							   webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
-							   // Only render the first track.
-							   if (!tracks.empty())
-							   {
-								   webrtc::VideoTrackInterface* track = tracks[0];
-								   main_wnd_->StartRemoteRenderer(track);
-							   }
-							   stream->Release();
-							   break;
+		webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
+		webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
+		// Only render the first track.
+		if (!tracks.empty())
+		{
+			webrtc::VideoTrackInterface* track = tracks[0];
+			main_wnd_->StartRemoteRenderer(track);
+		}
+		stream->Release();
+		break;
 	}
 
 	case STREAM_REMOVED: {
-							 // Remote peer stopped sending a stream.
-							 webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>( data);
-							 stream->Release();
-							 break;
+		// Remote peer stopped sending a stream.
+		webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>( data);
+		stream->Release();
+		break;
 	}
 
 	default:
@@ -667,15 +676,10 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 	}
 }
 
-// why is this called twice???? the first call has a IP 0.0.0.0 so seems kind of useless, the
-// send has unexpected candidate detail
+// seems to be called twice
 void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 {
 	LOG(INFO) << "\ngdh says: conductor - some kind of success";
-
-	// ignore: a=rtcp:1 IN IP4 0.0.0.0
-
-//	::DebugBreak();
 
 	peer_connection_->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desc);
 	Json::StyledWriter writer;
@@ -683,16 +687,16 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 	jmessage[kSessionDescriptionTypeName] = desc->type();
 
 	std::string sdp;
-
 	desc->ToString(&sdp);
-	LOG(INFO) << "\nhello local SDP:\n" << sdp;
-	int zeros = sdp.find("a=rtcp:1 IN IP4 0.0.0.0");		 // ignore a=rtcp:1 IN IP4 0.0.0.0
-	if (zeros == -1)
-	{
-		LOG(INFO) << "\n\n\ngot good sdp\n\n\n";
-	}
-	jmessage[kSessionDescriptionSdpName] = sdp;
 
+//	LOG(INFO) << "\nhello local SDP:\n" << sdp;
+//	int zeros = sdp.find("a=rtcp:1 IN IP4 0.0.0.0");		 // ignore a=rtcp:1 IN IP4 0.0.0.0
+//	if (zeros == -1)
+//	{
+//		LOG(INFO) << "\n\n\ngot good sdp\n\n\n";
+//	}
+
+	jmessage[kSessionDescriptionSdpName] = sdp;
 	SendMessage(writer.write(jmessage));			// <-- send to signal server (JS)
 }
 

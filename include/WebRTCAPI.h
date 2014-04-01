@@ -105,6 +105,8 @@ END_CONNECTION_POINT_MAP()
 BEGIN_MSG_MAP(CWebRTCAPI)
 	MESSAGE_HANDLER(WM_PAINT, OnPaint)
 	MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
+
+	// these 2 lines seem to have no effect:
 	//CHAIN_MSG_MAP(CComControl<CWebRTCAPI>)
 	//DEFAULT_REFLECTION_HANDLER()
 
@@ -147,6 +149,7 @@ public:
 	IFACEMETHOD(hello)(BSTR *pRet);
 	IFACEMETHOD(pushToNative)(BSTR cmd, BSTR json);
 	
+/*
 	HRESULT OnDraw(ATL_DRAWINFO& di)
 	{
 		RECT& rc = *(RECT*)di.prcBounds;
@@ -180,8 +183,8 @@ public:
 
 		return S_OK;
 	}
+*/
 	
-
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
 	HRESULT FinalConstruct()

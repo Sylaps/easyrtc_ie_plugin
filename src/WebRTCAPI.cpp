@@ -39,6 +39,15 @@ std::string BSTR2string(BSTR bstr)
 
 Conductor* gdhConductor = 0;
 
+void quiter()
+{
+	if (gdhConductor != 0)
+	{
+		gdhConductor->Close();
+		PostQuitMessage(0);
+	}
+}
+
 IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 {
 //	std::wstring ws(bjson, SysStringLen(bjson));
@@ -58,23 +67,19 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	int a = cmd.find("gotanswer");
 	int o = cmd.find("gotoffer");
 	int m = cmd.find("makeoffer");
+	int h = cmd.find("hangup");
 	int t = cmd.find("gotcandidate");
-	int i = cmd.find("init");
-	int c = cmd.find("conn");
+//	int i = cmd.find("init");
+//	int c = cmd.find("conn");
 	int q = cmd.find("quit");
 	int d = cmd.find("debug");
 
-
 	if (o > -1)
-	{
 		gdhConductor->gotoffer(json);
-//		Json::Value kkk = (jsonobj["sdp"]);
-//		gdhConductor->gotoffer(writer.write(jsonobj["sdp"]));
-	}
 	else if (a > -1)
 		gdhConductor->gotanswer(json);
-	else if (i > -1)
-		gdhConductor->getlocalvideo();
+	else if (h > -1)
+		gdhConductor->hangup();
 	else if (m > -1)
 		gdhConductor->createoffer();
 	else if (t > -1)
@@ -103,34 +108,15 @@ void CWebRTCAPI::SendToBrowser(const std::string& json)		// from JavaScriptCallb
 
 void logtofile()
 {
-	bool debug = true;
-	std::string log = "verbose";
+//	std::string log = "verbose";
+	talk_base::LogMessage::LogToDebug(talk_base::LS_INFO);
 
-	if (debug)
-	{
-		talk_base::LogMessage::LogToDebug(talk_base::LS_VERBOSE);
-	}
-
-	if (!log.empty())
-	{
-		talk_base::FileStream *fs = new talk_base::FileStream();
-		if (!fs->Open("gdh_webrtcapi.log", "w", NULL))
-		{
-			LOG(INFO) << "Could not open file";
-		}
-		else
-		{
-			talk_base::LogMessage::LogToStream(fs, talk_base::LS_VERBOSE);
-		}
-	}
+	talk_base::FileStream *fs = new talk_base::FileStream();
+	if (!fs->Open("WebRtcAx.log", "w", NULL))
+		LOG(INFO) << "Could not open file";
+	else
+		talk_base::LogMessage::LogToStream(fs, talk_base::LS_INFO);
 }
-
-/*
-STDAPI DllCanUnloadNow()
-{
-	return S_OK;
-}
-*/
 
 IFACEMETHODIMP CWebRTCAPI::run()
 {
@@ -138,7 +124,6 @@ IFACEMETHODIMP CWebRTCAPI::run()
 
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
-	LOG(INFO) << "\nrrrrrrrrrrrrrrrrruuuuuuuuuuuuuuuuuuuuuuuunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn";
 	talk_base::SetRandomTestMode(true);
 	talk_base::EnsureWinsockInit();
 	talk_base::Win32Thread w32_thread;
@@ -160,7 +145,7 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	talk_base::scoped_refptr<Conductor> conductor(new talk_base::RefCountedObject<Conductor>(&client, &mainWindow));
 
 	gdhConductor = conductor;	// we need to be able to call the conductor
-	conductor->that = this;		// the conductor needs to be to call us
+	conductor->javascriptCallback_ = this;		// the conductor needs to be to call us
 
 //	conductor->getlocalvideo();   use buttons to call initpeerconnection and make offer
 
@@ -170,6 +155,28 @@ IFACEMETHODIMP CWebRTCAPI::run()
 
 	while ((gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1)
 	{
+		if (msg.message == WM_CLOSE || msg.message == 33176)
+			break;
+/*
+		if (// msg.message == 49819 ||
+			msg.message == 33176 ||
+//			msg.message == 33172 ||
+			msg.message == 1792 ||
+			msg.message == WM_CLOSE)
+		{
+LOG(INFO) << gettime() << " " << msg.hwnd << " " << msg.message << " " << msg.lParam << " " << msg.wParam;
+// break;
+		}
+*/
+/*
+if (msg.message == WM_CLOSE)
+{
+//	client.disconnect_all();
+	conductor->Close();
+//	PostQuitMessage(0);
+	break;
+}
+*/
 		if (!mainWindow.PreTranslateMessage(&msg))
 		{
 			::TranslateMessage(&msg);
@@ -177,12 +184,16 @@ IFACEMETHODIMP CWebRTCAPI::run()
 		}
 	}
 
-	CoUninitialize();
+	// here we have a working shutdown:
+	PostQuitMessage(0);
+	client.disconnect_all();
+//	client.SignOut();
+	conductor->Close();
 	talk_base::CleanupSSL();
+	gdhConductor = 0;
+	CoUninitialize();
 
-								// is this second loop "better" than the first?
 	/*
-	if (conductor->connection_active() || client.is_connected())
 	{
 		while ((conductor->connection_active() || client.is_connected()) &&
 			(gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1)
@@ -195,38 +206,22 @@ IFACEMETHODIMP CWebRTCAPI::run()
 		}
 	}
 	*/
-
-	gdhConductor = NULL;
 	return S_OK;
 }
-
 
 LRESULT CWebRTCAPI::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	mainWindow.OnPaint();
-
 	return 0;
 }
-
 
 LRESULT CWebRTCAPI::OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-	// TODO: Add your message handler code here and/or call default
-
 	return 0;
 }
 
-
 LRESULT CWebRTCAPI::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-
-
-	// this compiles:
-	//	Fire_EventToBrowser(L"{ \"fake\" : \"json\" }");
-
-
-	// TODO: Add your message handler code here and/or call default
 	mainWindow.Destroy();
-
 	return 0;
 }

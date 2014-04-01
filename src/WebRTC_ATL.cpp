@@ -9,9 +9,12 @@
 
 using namespace ATL;
 
+// extern void quiter();   if the video is active trying to close IE will not cause DllCanUnloadNow to be called
+
 // Used to determine whether the DLL can be unloaded by OLE.
 STDAPI DllCanUnloadNow(void)
 {
+//	quiter();
 	return _AtlModule.DllCanUnloadNow();
 }
 
