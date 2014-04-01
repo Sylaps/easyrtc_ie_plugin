@@ -1,4 +1,5 @@
-var socket = io.connect('http://localhost:8080');
+
+var socket = io.connect(':8080');
 
 var sdp = null;
 var activex = null;
@@ -12,9 +13,9 @@ var icy = null;
 //}
 
 function auth() {
-//	console.log('auth!');
+	console.log('auth!');
 	socket.emit('easyrtcAuth', authjson, authorizationCallback);
-//	console.log('authed');
+	console.log('authed');
 }
 
 function register(ax) {
@@ -32,12 +33,12 @@ var authjson = { "msgType" : "authenticate", "msgData" : {"apiVersion" : "1.0.10
 var hangupjson = { "msgType" : "hangup", "targetEasyrtcid" : "undefined" };
 
 var offerjson = { "msgType" : "offer",
-		"targetEasyrtcid" : "youaddthislater",
+		"targetEasyrtcid" : "offer_easyrtc_todo",
 		"msgData" : 
 		{ "sdp" : "", "type" : "offer" }};
 
 var answerjson = { "msgType" : "answer",
-		"targetEasyrtcid" : "youaddthislater",
+		"targetEasyrtcid" : "answer_easyrtc_todo",
 		"msgData" : 
 		{ "sdp" : "", "type" : "answer" }};
 
@@ -68,7 +69,7 @@ function asyncEvent(json) {
 			//console.log('fix sdp...');
 			//json.sdp = json.sdp.replace('0.0.0.0', '172.16.40.108').replace('0.0.0.0', '172.16.40.108');
 		//}
-		console.log('send easy an offer(sdp): ' + JSON.stringify(json.sdp));
+		// console.log('send easy an offer(sdp): ' + JSON.stringify(json.sdp));
 		offer2(json.sdp);
 	}
 
@@ -84,9 +85,9 @@ function asyncEvent(json) {
 		// from easyrtc:
 		// incoming easyrtcCmd:  {"senderEasyrtcid":"qUrto0iznJiABk0LIqaa","msgData":{"type":"candidate","label":0,"id":"audio","candidate":"a=candidate:1150697756 1 udp 2113937151 172.16.40.108 51104 typ host generation 0\r\n"},"easyrtcid":"NLQoUZNI8iL-fVMoIqab","msgType":"candidate","serverTime":1395698888439}
 		//
-		console.log('got candidate from google' +  JSON.stringify(json));
+		// console.log('got candidate from google' +  JSON.stringify(json));
 		easycandidate.senderEasyrtcid = myrtcid;
-		easycandidate.targetEasyrtcid = offerjson.targetEasyrtcid;
+		easycandidate.targetEasyrtcid = remotertcid; // offerjson.targetEasyrtcid;	why fix this now? gdh
 
 // which?
 		//easycandidate.msgData.candidate = json.candidate.replace('\r\n','');
@@ -101,18 +102,18 @@ function asyncEvent(json) {
 //		console.log('**************************************************************************************************');
 		socket.emit('easyrtcCmd', easycandidate, candyCallback);
 	}
-	else
-		console.log('unexpected from native: ' + JSON.stringify(json));
+// 	else
+// 		console.log('unexpected from native: ' + JSON.stringify(json));
 }
 
 var authorizationCallback = function (json) { 
 
 	document.getElementById('divLog').innerHTML += 'authorizationCallback()<br>';
-	console.log('gotauth: ' + JSON.stringify(json)); 
+// 	console.log('gotauth: ' + JSON.stringify(json)); 
 	myrtcid = json.msgData.easyrtcid;
 	icy = json.msgData.iceConfig.iceServers;
 	var rtcids = Object.keys(json.msgData.roomData.default.clientList);
-	console.log('rtcids |' + rtcids + '|');
+// 	console.log('rtcids |' + rtcids + '|');
 
 	var htm = '';
 	for(var i = 0; i < rtcids.length; i++) {
@@ -142,7 +143,8 @@ function hangup() {
 function offer2(sdp) {
 //	document.getElementById('divLog').innerHTML += 'offer(' + rtcid + ')<br>';
 	offerjson.msgData.sdp = sdp;
-	// wtf offerjson.targetEasyrtcid = remotertcid;
+	offerjson.targetEasyrtcid = remotertcid;
+console.log('send offer to ' + remotertcid);
 	socket.emit('easyrtcCmd', offerjson, offerCallback);
 }
 
@@ -150,13 +152,14 @@ function answerdude(sdp) {
 //	document.getElementById('divLog').innerHTML += 'offer(' + rtcid + ')<br>';
 	answerjson.msgData.sdp = sdp;
 	answerjson.targetEasyrtcid = remotertcid;
-	console.log('hey, lets answer: ' + JSON.stringify(answerjson));
+ 	console.log('hey, lets answer: ' + JSON.stringify(answerjson));
 	socket.emit('easyrtcCmd', answerjson, offerCallback);
 }
 
 function offer(rtcid) {
+	remotertcid = rtcid;
 	offerjson.targetEasyrtcid = rtcid; 
-	console.log('ask activex to make an sdp');
+// 	console.log('ask activex to make an sdp');
 	activex.pushToNative('makeoffer', '');
 
 
@@ -168,18 +171,18 @@ function offer(rtcid) {
 // just an ack, answer will come later
 var offerCallback = function (json) { 
 	document.getElementById('divLog').innerHTML += 'offerCallback()<br>';
-	console.log('offer callback:' + JSON.stringify(json));
+// 	console.log('offer callback:' + JSON.stringify(json));
 };
 
 var candyCallback = function (json) { 
-	console.log('candidate callback:' + JSON.stringify(json));
+// 	console.log('candidate callback:' + JSON.stringify(json));
 };
 
 
 // see http://dev.w3.org/2011/webrtc/editor/webrtc.html#rtcpeerconnection-interface
 function RTCPeerConnection(ice_servers, options) {
 	document.getElementById('divLog').innerHTML += 'RTCPeerConnection()<br>';
-		console.log('new pc');
+		// console.log('new pc');
 		this.ice_servers = ice_servers;
 		this.onaddstream = function () { };
 		this.addStream = function () { };
@@ -202,7 +205,7 @@ window.onbeforeunload = function (event) {
 /*
 function processJsonEvent(json)
 {
-	console.log('--->');
+	// console.log('--->');
 	console.log('processJsonEvent():');
 	console.log(json);
 	console.log('<---');
@@ -211,7 +214,7 @@ function processJsonEvent(json)
 
 function loaded() {
 	document.getElementById('divLog').innerHTML += 'loaded()<br>';
-	console.log('loaded');
+// 	console.log('loaded');
 }
 
 function gotAnswer(json) {
@@ -234,6 +237,10 @@ function gotOffer(json) {
 	document.getElementById('divLog').innerHTML += 'gotOffer()<br>';
 
 	remotertcid = json.senderEasyrtcid;
+	console.log();
+	console.log();
+	console.log('incoming offer from ' + remotertcid);
+	console.log();
 
 	var sdp = JSON.stringify(json.msgData.sdp);
 	if (sdp.indexOf('"') == 0) {
@@ -252,8 +259,8 @@ activex.pushToNative('gotoffer', JSON.stringify(json.msgData));
 
 function gotCandidate(json) {
 
-	document.getElementById('divLog').innerHTML += 'gotCandidate(' + json.msgData.candidate + ')<br>';
-//	console.log('candidate from easy: ' + JSON.stringify(json));
+//	document.getElementById('divLog').innerHTML += 'gotCandidate(' + json.msgData.candidate + ')<br>';
+	console.log('candidate from easy: ' + JSON.stringify(json));
 
 	goocandidate.candidate = json.msgData.candidate;
 	goocandidate.sdpMid = json.msgData.id;
@@ -281,7 +288,7 @@ function callActiveX() {
 
 
 socket.on('easyrtcCmd', function (json) {
-	console.log('incoming from easyrtc server: ', JSON.stringify(json));
+// 	console.log('incoming from easyrtc server: ', JSON.stringify(json));
 	if (json.msgData)
 		if (json.msgData.type)							// don't need, could just check for sdp...
 			switch(json.msgData.type) {
@@ -289,18 +296,18 @@ socket.on('easyrtcCmd', function (json) {
 				gotAnswer(json);
 				break;
 			case 'candidate': 
-				gotCandidate(json.msgData.candidate);
+				gotCandidate(json); // .msgData.candidate);
 				break;
 			case 'roomData': 
 				alert('unexpected roomdata: ' + json.msgData.roomData);
-				console.log('roomdata: ' + json.msgData.roomData);
+// 				console.log('roomdata: ' + json.msgData.roomData);
 				break;
 			case 'offer': 
 				gotOffer(json);
 				break;
 			default:
 				alert('unexpected message from easyrtc server ' + JSON.stringify(json));
-				console.log('huh? ' + JSON.stringify(json));
+// 				console.log('huh? ' + JSON.stringify(json));
 				break;
 			}
 
