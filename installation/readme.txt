@@ -1,3 +1,4 @@
+Also INNO setup 
 Install this tool: http://blog.ksoftware.net/tag/ksign/
 
 ksign might be easier to use to create pfx file, etc.
