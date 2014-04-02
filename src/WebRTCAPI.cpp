@@ -1,12 +1,12 @@
 #include "stdafx.h"
 
-#include "./conductor.h"
 #include "talk/base/json.h"
-#include "main_wnd.h"
-#include "peer_connection_client.h"
 #include "talk/base/ssladapter.h"
 #include "talk/base/win32socketinit.h"
 #include "talk/base/win32socketserver.h"
+#include "conductor.h"
+#include "main_wnd.h"
+#include "peer_connection_client.h"
 
 #include "WebRTCAPI.h"
 
@@ -36,9 +36,10 @@ std::string BSTR2string(BSTR bstr)
 	return std::string(W2A(bstr));
 }
 
+//Conductor* gdhConductor = 0;
+// talk_base::scoped_refptr<Conductor> conductor = 0;	// migrate to this (make static?), remove gdhConductor
 
-Conductor* gdhConductor = 0;
-
+/*
 void quiter()
 {
 	if (gdhConductor != 0)
@@ -47,6 +48,7 @@ void quiter()
 		PostQuitMessage(0);
 	}
 }
+*/
 
 IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 {
@@ -64,26 +66,28 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 
 	LOG(INFO) << gettime() + " push to native ***************************** " << json;
 
-	int a = cmd.find("gotanswer");
-	int o = cmd.find("gotoffer");
 	int m = cmd.find("makeoffer");
+	int a = cmd.find("gotanswer");
+
+	int o = cmd.find("gotoffer");
+
 	int h = cmd.find("hangup");
+
 	int t = cmd.find("gotcandidate");
-//	int i = cmd.find("init");
-//	int c = cmd.find("conn");
-	int q = cmd.find("quit");
+
+	int q = cmd.find("quit");		// seems to cause problems
 	int d = cmd.find("debug");
 
 	if (o > -1)
-		gdhConductor->gotoffer(json);
+		conductor_->gotoffer(json);
 	else if (a > -1)
-		gdhConductor->gotanswer(json);
+		conductor_->gotanswer(json);
 	else if (h > -1)
-		gdhConductor->hangup();
+		conductor_->hangup();
 	else if (m > -1)
-		gdhConductor->createoffer();
+		conductor_->createoffer();
 	else if (t > -1)
-		gdhConductor->candidate(json);
+		conductor_->candidate(json);
 	else if (d > -1)
 	{
 	#if WIN32
@@ -92,8 +96,8 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	}
 	else if (q > -1)
 	{
-		gdhConductor->Close();
-		PostQuitMessage(0);
+		conductor_->Close();	// need this, or perhaps something like it
+//well??		PostQuitMessage(0);
 	}
 
 	LOG(INFO) << "\n\nDONE push to native() *********************************************************";
@@ -142,10 +146,12 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	if (!talk_base::InitializeSSL(NULL) || !talk_base::InitializeSSLThread())
 		LOG(LS_ERROR) << "error failed to init ssl";
 
-	talk_base::scoped_refptr<Conductor> conductor(new talk_base::RefCountedObject<Conductor>(&client, &mainWindow));
+//	talk_base::scoped_refptr<Conductor> conductor(new talk_base::RefCountedObject<Conductor>(&client, &mainWindow));
 
-	gdhConductor = conductor;	// we need to be able to call the conductor
-	conductor->javascriptCallback_ = this;		// the conductor needs to be to call us
+	conductor_ = new talk_base::RefCountedObject<Conductor>(&client, &mainWindow);
+
+//	gdhConductor = conductor;	// we need to be able to call the conductor
+	conductor_->javascriptCallback_ = this;		// the conductor needs to be to call us
 
 //	conductor->getlocalvideo();   use buttons to call initpeerconnection and make offer
 
@@ -164,8 +170,6 @@ IFACEMETHODIMP CWebRTCAPI::run()
 			msg.message == 1792 ||
 			msg.message == WM_CLOSE)
 		{
-LOG(INFO) << gettime() << " " << msg.hwnd << " " << msg.message << " " << msg.lParam << " " << msg.wParam;
-// break;
 		}
 */
 /*
@@ -185,13 +189,23 @@ if (msg.message == WM_CLOSE)
 	}
 
 	// here we have a working shutdown:
-	PostQuitMessage(0);
+
+	PostQuitMessage(0);			// ya really?
+
+	client.SignOut();
+
 	client.disconnect_all();
-//	client.SignOut();
-	conductor->Close();
+
+	conductor_->Close();
+
 	talk_base::CleanupSSL();
-	gdhConductor = 0;
+
+// causes ie to crash on close		free(conductor_);
+
 	CoUninitialize();
+
+	return S_OK;
+}
 
 	/*
 	{
@@ -206,8 +220,6 @@ if (msg.message == WM_CLOSE)
 		}
 	}
 	*/
-	return S_OK;
-}
 
 LRESULT CWebRTCAPI::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {

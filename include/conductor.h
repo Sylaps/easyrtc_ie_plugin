@@ -51,15 +51,13 @@ namespace cricket
 	class VideoRenderer;
 }  // namespace cricket
 
-class JavaScriptCallback
+class JavaScriptCallback		// aka BrowserCallback
 {
 public:
 	virtual void SendToBrowser(const std::string& json) = 0;
 
 protected:
-	virtual ~JavaScriptCallback()
-	{
-	}
+	virtual ~JavaScriptCallback() { }
 };
 
 class Conductor
@@ -75,8 +73,7 @@ public:
 		MEDIA_CHANNELS_INITIALIZED = 1,
 		PEER_CONNECTION_CLOSED,
 		SEND_MESSAGE_TO_PEER,
-//		SEND_MESSAGE_TO_DUDE,
-		SEND_MESSAGE_TO_UPJS,
+		SEND_MESSAGE_TO_BROWSER,
 		PEER_CONNECTION_ERROR,
 		NEW_STREAM_ADDED,
 		STREAM_REMOVED,
@@ -190,8 +187,8 @@ protected:
 	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>peer_connection_factory_;
 
-	PeerConnectionClient* client_;
-	MainWindow* main_wnd_;
+	MainWindow* mainWindow_;
+	PeerConnectionClient* peerConnectionClient_;
 
 	std::deque<std::string*> pending_messages_;
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> >
