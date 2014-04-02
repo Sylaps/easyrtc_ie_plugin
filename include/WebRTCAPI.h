@@ -1,5 +1,5 @@
-// WebRTCAPI.h : Declaration of the CWebRTCAPI
 #pragma once
+
 #include "resource.h"       // main symbols
 #include <atlctl.h>
 #include "..\WebRTC_ATL_i.h"
@@ -10,8 +10,6 @@
 #endif
 
 using namespace ATL;
-
-
 
 // CWebRTCAPI
 class ATL_NO_VTABLE CWebRTCAPI :
@@ -47,15 +45,9 @@ public:
 		return CComBSTR(s.c_str()).Detach();
 	}
 
-	virtual void SendToBrowser(const std::string& json);	// from JavaScriptCallback
-	/*
-	{
-		BSTR bjson = Convert(json);
-		Fire_EventToBrowser(bjson);
+	talk_base::scoped_refptr<Conductor> conductor_ = 0;
 
-//		Fire_EventToBrowser(L"{ \"fake\" : \"json\" }");
-	}
-	*/
+	virtual void SendToBrowser(const std::string& json);	// inherited from JavaScriptCallback
 
 DECLARE_OLEMISC_STATUS(OLEMISC_RECOMPOSEONRESIZE |
 	OLEMISC_CANTLINKINSIDE |
@@ -141,7 +133,6 @@ END_MSG_MAP()
 
 // IWebRTCAPI
 public:
-
 
 	/* Add exposed javascript methods here */
 	

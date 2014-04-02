@@ -51,15 +51,13 @@ namespace cricket
 	class VideoRenderer;
 }  // namespace cricket
 
-class JavaScriptCallback
+class JavaScriptCallback		// aka BrowserCallback
 {
 public:
 	virtual void SendToBrowser(const std::string& json) = 0;
 
 protected:
-	virtual ~JavaScriptCallback()
-	{
-	}
+	virtual ~JavaScriptCallback() { }
 };
 
 class Conductor
@@ -75,8 +73,7 @@ public:
 		MEDIA_CHANNELS_INITIALIZED = 1,
 		PEER_CONNECTION_CLOSED,
 		SEND_MESSAGE_TO_PEER,
-//		SEND_MESSAGE_TO_DUDE,
-		SEND_MESSAGE_TO_UPJS,
+		SEND_MESSAGE_TO_BROWSER,
 		PEER_CONNECTION_ERROR,
 		NEW_STREAM_ADDED,
 		STREAM_REMOVED,
@@ -88,12 +85,17 @@ public:
 
 	virtual void Close();
 
-	void candidate(std::string json);
-	void gotanswer(std::string json);
-	void hangup();
+	void CreatOfferSDP();
+	void ProcessAnswer(std::string json);
+
+	void ProcessOffer(std::string);
+
+	void ProcessCandidate(std::string json);
+
+	void Hangup();
+
+	// we might want to just display local until a call is made
 	void getlocalvideo();	// just call InitializePeerConnection
-	void gotoffer(std::string);
-	void createoffer();
 
 	Constraints mandatory_;
 	Constraints optional_;
@@ -113,9 +115,6 @@ public:
 		mandatory_.push_back(Constraint(MediaConstraintsInterface::kEnableDtlsSrtp, "true"));
 //		SetMandatory(MediaConstraintsInterface::kEnableDtlsSrtp, true);
 	}
-
-//	virtual const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
-//	virtual const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);
 
 	JavaScriptCallback *javascriptCallback_;
 
@@ -184,14 +183,14 @@ protected:
 
 protected:
 	// Send a message to the remote peer.
-	void SendMessage(const std::string& json_object);
+	void PostToBrowser(const std::string& json_object);
 
 	int peer_id_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>peer_connection_factory_;
 
-	PeerConnectionClient* client_;
-	MainWindow* main_wnd_;
+	MainWindow* mainWindow_;
+	PeerConnectionClient* peerConnectionClient_;
 
 	std::deque<std::string*> pending_messages_;
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> >

@@ -1,20 +1,15 @@
 // WebRTC_ATL.cpp : Implementation of DLL Exports.
 
-
 #include "stdafx.h"
 #include "resource.h"
 #include "..\WebRTC_ATL_i.h"
 #include "dllmain.h"
 
-
 using namespace ATL;
-
-// extern void quiter();   if the video is active trying to close IE will not cause DllCanUnloadNow to be called
 
 // Used to determine whether the DLL can be unloaded by OLE.
 STDAPI DllCanUnloadNow(void)
 {
-//	quiter();
 	return _AtlModule.DllCanUnloadNow();
 }
 

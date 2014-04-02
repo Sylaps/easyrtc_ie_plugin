@@ -26,6 +26,8 @@ function register(ax) {
 // TODO careful with 'class' vs 'static'; see prototype for adding methods, etc etc....
 //
 	var something = new RTCPeerConnection({ "iceServers": [] }, null);
+
+	addEventHandler('WebRTCAPI', asyncEvent);
 }
 
 var authjson = { "msgType" : "authenticate", "msgData" : {"apiVersion" : "1.0.10", "applicationName" : "undefined" } };
@@ -60,6 +62,24 @@ var goocandidate = {
 }
 
 //var fixsdp = 'c=IN IP4 172.16.40.108NEWCARa=rtcp:50592 IN IP4 172.16.40.108NEWCARa=candidate:1150697756 1 udp 2122129151 172.16.40.108 50592 typ host generation 0NEWCARa=candidate:1150697756 2 udp 2122129151 172.16.40.108 50592 typ host generation 0NEWCARa=candidate:169197036 1 tcp 1518149375 172.16.40.108 51722 typ host generation 0NEWCARa=candidate:169197036 2 tcp 1518149375 172.16.40.108 51722 typ host generation 0NEWCAR';
+
+/*
+function WebRTCAPI::EventToBrowser(json) {
+	asyncEvent(json);
+}
+*/
+
+
+function addEventHandler(id, handler) {
+  try {
+   var evalString = "function " + id + "::EventToBrowser (event) { handler(event); }"; // Eval bind double-colon function to call handler
+   console.log(evalString);
+   eval(evalString);
+  } catch (e) {
+   console.log(e);
+   throw new Error("Could not add custom event handler to "+ id);
+  }
+ }
 
 function asyncEvent(json) {
 	// if (json.sdp) { // type = offer
@@ -229,7 +249,7 @@ function gotAnswer(json) {
 	//	sdp = sdp.replace('0.0.0.0', '172.16.40.108');
 	//	sdp = sdp.replace('0.0.0.0', '172.16.40.108');
 		//console.log('push answer: ' + JSON.stringify(json));
-		activex.pushToNative('gotanswer', sdp);
+		activex.pushToNative('handleanswer', sdp);
 	}
 }
 
@@ -253,7 +273,7 @@ function gotOffer(json) {
 	// test - send the whole thing
 json.msgData.sdp = sdp;	
 
-activex.pushToNative('gotoffer', JSON.stringify(json.msgData));
+activex.pushToNative('handleoffer', JSON.stringify(json.msgData));
 // activex.pushToNative('gotoffer', sdp);
 }
 
@@ -267,7 +287,7 @@ function gotCandidate(json) {
 	goocandidate.sdpMLineIndex = json.msgData.label;
 
 //	console.log('send to google c++: ' + JSON.stringify(goocandidate));
-	activex.pushToNative('gotcandidate', JSON.stringify(goocandidate));
+	activex.pushToNative('handlecandidate', JSON.stringify(goocandidate));
 }
 
 /*
