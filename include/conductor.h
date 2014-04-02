@@ -85,12 +85,17 @@ public:
 
 	virtual void Close();
 
-	void candidate(std::string json);
-	void gotanswer(std::string json);
-	void hangup();
+	void CreatOfferSDP();
+	void ProcessAnswer(std::string json);
+
+	void ProcessOffer(std::string);
+
+	void ProcessCandidate(std::string json);
+
+	void Hangup();
+
+	// we might want to just display local until a call is made
 	void getlocalvideo();	// just call InitializePeerConnection
-	void gotoffer(std::string);
-	void createoffer();
 
 	Constraints mandatory_;
 	Constraints optional_;
@@ -110,9 +115,6 @@ public:
 		mandatory_.push_back(Constraint(MediaConstraintsInterface::kEnableDtlsSrtp, "true"));
 //		SetMandatory(MediaConstraintsInterface::kEnableDtlsSrtp, true);
 	}
-
-//	virtual const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
-//	virtual const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);
 
 	JavaScriptCallback *javascriptCallback_;
 

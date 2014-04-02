@@ -10,8 +10,6 @@
 
 #include "WebRTCAPI.h"
 
-//(HINSTANCE instance, DWORD dwReason, LPVOID) {
-
 #define DEBUG_WEBRTC
 
 extern const std::string gettime();
@@ -30,36 +28,17 @@ void showDebugAlert(LPCWSTR caption, LPCWSTR text)
 #endif // DEBUG
 }
 
+// util
 std::string BSTR2string(BSTR bstr)
 {
 	USES_CONVERSION;
 	return std::string(W2A(bstr));
 }
 
-//Conductor* gdhConductor = 0;
-// talk_base::scoped_refptr<Conductor> conductor = 0;	// migrate to this (make static?), remove gdhConductor
-
-/*
-void quiter()
-{
-	if (gdhConductor != 0)
-	{
-		gdhConductor->Close();
-		PostQuitMessage(0);
-	}
-}
-*/
-
 IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 {
-//	std::wstring ws(bjson, SysStringLen(bjson));
-//	BSTR bs = SysAllocStringLen(ws.data(), ws.size());
-
 	std::string cmd = BSTR2string(bcmd);
 	std::string json = BSTR2string(bjson);
-
-// SendToBrowser("incoming from JS to C++");
-//	Fire_EventToBrowser(bjson);
 
 	Json::StyledWriter writer;
 	Json::Value jsonobj(json);
@@ -75,32 +54,32 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 
 	int t = cmd.find("gotcandidate");
 
-	int q = cmd.find("quit");		// seems to cause problems
+//	int q = cmd.find("quit");		// quit is not working, causes crash on IE shutdown
 	int d = cmd.find("debug");
 
 	if (o > -1)
-		conductor_->gotoffer(json);
+		conductor_->ProcessOffer(json);
 	else if (a > -1)
-		conductor_->gotanswer(json);
+		conductor_->ProcessAnswer(json);
 	else if (h > -1)
-		conductor_->hangup();
+		conductor_->Hangup();
 	else if (m > -1)
-		conductor_->createoffer();
+		conductor_->CreatOfferSDP();
 	else if (t > -1)
-		conductor_->candidate(json);
+		conductor_->ProcessCandidate(json);
 	else if (d > -1)
 	{
 	#if WIN32
 		::DebugBreak();
 	#endif
 	}
+	/*
 	else if (q > -1)
 	{
 		conductor_->Close();	// need this, or perhaps something like it
 //well??		PostQuitMessage(0);
 	}
-
-	LOG(INFO) << "\n\nDONE push to native() *********************************************************";
+	*/
 	return S_OK;
 }
 
@@ -110,6 +89,7 @@ void CWebRTCAPI::SendToBrowser(const std::string& json)		// from JavaScriptCallb
 	Fire_EventToBrowser(bjson);
 }
 
+#ifdef DEBUG
 void logtofile()
 {
 //	std::string log = "verbose";
@@ -121,10 +101,13 @@ void logtofile()
 	else
 		talk_base::LogMessage::LogToStream(fs, talk_base::LS_INFO);
 }
+#endif
 
 IFACEMETHODIMP CWebRTCAPI::run()
 {
+#ifdef DEBUG
 	logtofile();
+#endif
 
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
@@ -146,14 +129,10 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	if (!talk_base::InitializeSSL(NULL) || !talk_base::InitializeSSLThread())
 		LOG(LS_ERROR) << "error failed to init ssl";
 
-//	talk_base::scoped_refptr<Conductor> conductor(new talk_base::RefCountedObject<Conductor>(&client, &mainWindow));
-
 	conductor_ = new talk_base::RefCountedObject<Conductor>(&client, &mainWindow);
+	conductor_->javascriptCallback_ = this;		// the conductor needs to be able to call us
 
-//	gdhConductor = conductor;	// we need to be able to call the conductor
-	conductor_->javascriptCallback_ = this;		// the conductor needs to be to call us
-
-//	conductor->getlocalvideo();   use buttons to call initpeerconnection and make offer
+//	conductor->getlocalvideo();   perhaps we'd like to start with the local video?
 
 	// Main loop.
 	MSG msg;
@@ -163,24 +142,7 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	{
 		if (msg.message == WM_CLOSE || msg.message == 33176)
 			break;
-/*
-		if (// msg.message == 49819 ||
-			msg.message == 33176 ||
-//			msg.message == 33172 ||
-			msg.message == 1792 ||
-			msg.message == WM_CLOSE)
-		{
-		}
-*/
-/*
-if (msg.message == WM_CLOSE)
-{
-//	client.disconnect_all();
-	conductor->Close();
-//	PostQuitMessage(0);
-	break;
-}
-*/
+
 		if (!mainWindow.PreTranslateMessage(&msg))
 		{
 			::TranslateMessage(&msg);
@@ -206,20 +168,6 @@ if (msg.message == WM_CLOSE)
 
 	return S_OK;
 }
-
-	/*
-	{
-		while ((conductor->connection_active() || client.is_connected()) &&
-			(gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1)
-		{
-			if (!mainWindow.PreTranslateMessage(&msg))
-			{
-				::TranslateMessage(&msg);
-				::DispatchMessage(&msg);
-			}
-		}
-	}
-	*/
 
 LRESULT CWebRTCAPI::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {

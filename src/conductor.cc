@@ -1,3 +1,30 @@
+/*
+* libjingle
+* Copyright 2012, Google Inc.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+*  1. Redistributions of source code must retain the above copyright notice,
+*     this list of conditions and the following disclaimer.
+*  2. Redistributions in binary form must reproduce the above copyright notice,
+*     this list of conditions and the following disclaimer in the documentation
+*     and/or other materials provided with the distribution.
+*  3. The name of the author may not be used to endorse or promote products
+*     derived from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+* EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+* SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+* PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+* OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+* ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include "stdafx.h"
 #include "conductor.h"
 #include <utility>
@@ -65,8 +92,6 @@ Conductor::Conductor(PeerConnectionClient* client, MainWindow* main_wnd)
 
 Conductor::~Conductor()
 {
-	// TODO fix this clean-up, should be null
-//	ASSERT(peer_connection_.get() == NULL);
 	if (peer_connection_ != NULL)
 		if (peer_connection_.get() != NULL)
 			LOG(LS_ERROR) << "\n *********************** leak, clean up peer_connection somehow...";
@@ -83,46 +108,17 @@ void Conductor::Close()
 	DeletePeerConnection();
 }
 
-void Conductor::candidate(std::string json)		// gdh
+void Conductor::ProcessCandidate(std::string json)
 {
 	OnMessageFromPeer(0, json);
 }
 
-void Conductor::gotoffer(std::string remotesdp)		// gdh
+void Conductor::ProcessOffer(std::string remotesdp)	
 {
-	// try this:
-/* 
-this seems to do a lot, but vid connection not established
-	std::string type = "offer";
-	std::string json_object;
-
-	if (peer_connection_ == NULL)
-		InitializePeerConnection();
-
-	webrtc::SessionDescriptionInterface* session_description(webrtc::CreateSessionDescription(type, remotesdp));
-	peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
-*/
-
-	/* 
-	not sure
-
-// Wed: well??
-	if (peer_connection_ == NULL)
-		InitializePeerConnection();
-	SendMessage(remotesdp);
-	*/
-
-// how about this one: 
-
 	OnMessageFromPeer(0, remotesdp);		// lets try the whole json...!
-
-// ???	OnMessageFromPeer(0, json);
-
-	//webrtc::SessionDescriptionInterface* session_description(webrtc::CreateSessionDescription(type, remotesdp));
-	//peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
 }
 
-void Conductor::hangup()		// gdh
+void Conductor::Hangup()		// gdh
 {
 	if (peer_connection_.get())
 	{
@@ -131,7 +127,7 @@ void Conductor::hangup()		// gdh
 	}
 }
 
-void Conductor::gotanswer(std::string remotesdp)		// gdh
+void Conductor::ProcessAnswer(std::string remotesdp)		// gdh
 {
 	std::string type = "answer";
 	std::string json_object;
@@ -142,52 +138,27 @@ void Conductor::gotanswer(std::string remotesdp)		// gdh
 	webrtc::SessionDescriptionInterface* session_description(webrtc::CreateSessionDescription(type, remotesdp));
 	peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
 		
-//	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_DUDE, 0);
 }
 
 void Conductor::getlocalvideo()		// gdh
 {
-LOG(INFO) << "\n getlocalvideo ***********************";
-	//	gerryInitPeerForLocal();
 	InitializePeerConnection();
 
 	peer_id_ = 4;
 	peer_connection_->CreateOffer(this, NULL);
 }
 
-void Conductor::createoffer()		// gdh
+void Conductor::CreatOfferSDP()		// gdh
 {
-	//	do something
-	peer_id_ = 4;
-	LOG(INFO) << "\n createoffer ***********************";
+	peer_id_ = 4;				// TODO remove peer_id_
+	LOG(INFO) << "createoffer ***********************";
 
-		// both of these next 2 lines seem to work the same way
+	// both of these next 2 lines seem to work the same way
 	if (peer_connection_ == NULL)
 		InitializePeerConnection();
+
 	peer_connection_->CreateOffer(this, NULL);
-
-//	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_DUDE, 0);
 }
-
-//jconst webrtc::MediaConstraintsInterface::Constraint mcic(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
-//jwebrtc::MediaConstraintsInterface::Constraints dude;
-//jwebrtc::MediaConstraintsInterface::Constraints nothing;
-
-// const webrtc::MediaConstraintsInterface::Constraints &GetMandatory(void);
-// const webrtc::MediaConstraintsInterface::Constraints &GetOptional(void);
-
-/*
-const webrtc::MediaConstraintsInterface::Constraints& GetMandatory(void)
-{
-	if (dude.empty())
-		dude.push_back(mcic);
-	return dude;
-}
-const webrtc::MediaConstraintsInterface::Constraints& GetOptional(void)
-{
-	return nothing;
-}
-*/
 
 bool Conductor::InitializePeerConnection()
 {
@@ -208,45 +179,6 @@ bool Conductor::InitializePeerConnection()
 	webrtc::PeerConnectionInterface::IceServer server;
 	server.uri = GetPeerConnectionString();
 	servers.push_back(server);
-
-
-	/*
-	webrtc::FakeConstraints pc_constraints;
-	pc_constraints.AddOptional(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
-
-	peer_connection = peer_connection_factory->CreatePeerConnection(m_STUNandTURNServers, &pc_constraints, NULL, &observer);
-	if (!peer_connection.get())
-	{
-		LOGGER_ERROR(__TRACESECTION__, _T("  CreatePeerConnection failed!"));
-		return -1;
-	}
-
-	CreatePeerConnection(
-	const PeerConnectionInterface::IceServers& configuration,
-
-			const webrtc::MediaConstraintsInterface* constraints,
-
-	PortAllocatorFactoryInterface* allocator_factory,
-	DTLSIdentityServiceInterface* dtls_identity_service,
-
-	*/
-
-
-	/*
-	webrtc::MediaConstraintsInterface::Constraints::const_iterator iter;
-
-	webrtc::MediaConstraintsInterface* constraints = 0;
-
-	webrtc::MediaConstraintsInterface::Constraint mcickkk("dlkj", "dk");
-
-	webrtc::MediaConstraintsInterface::Constraint mcic(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, "true");
-//	this->AddOptional(mcic);
-
-
-//	webrtc::MediaConstraints pcmc;
-//	pcmc.AddOptional(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, true);
-//	webrtc::MediaConstraintsInterface *constraints = new webrtc::MediaConstraints("klsfj", "klsdfj");
-	*/
 
 	peer_connection_ = peer_connection_factory_->CreatePeerConnection(servers, this, NULL, this);	// not really a peer connection
 
