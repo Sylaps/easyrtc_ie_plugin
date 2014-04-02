@@ -137,7 +137,6 @@ void Conductor::ProcessAnswer(std::string remotesdp)		// gdh
 
 	webrtc::SessionDescriptionInterface* session_description(webrtc::CreateSessionDescription(type, remotesdp));
 	peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
-		
 }
 
 void Conductor::getlocalvideo()		// gdh

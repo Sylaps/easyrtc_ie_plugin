@@ -53,15 +53,15 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 //	int q = cmd.find("quit");		// quit is not working, causes crash on IE shutdown
 //	int d = cmd.find("debug");
 
-	if (cmd == "gotoffer")
+	if (cmd == "handleoffer")
 		conductor_->ProcessOffer(json);
-	else if (cmd == "gotanswer")
+	else if (cmd == "handleanswer")
 		conductor_->ProcessAnswer(json);
 	else if (cmd == "hangup")
 		conductor_->Hangup();
 	else if (cmd == "makeoffer")
 		conductor_->CreatOfferSDP();
-	else if (cmd == "gotcandidate")
+	else if (cmd == "handlecandidate")
 		conductor_->ProcessCandidate(json);
 	else if (cmd == "debug")
 	{
