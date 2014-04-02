@@ -253,7 +253,7 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 		return;
 	}
 	jmessage[kCandidateSdpName] = sdp;
-	SendMessage(writer.write(jmessage));
+	PostToBrowser(writer.write(jmessage));
 }
 
 //
@@ -631,7 +631,7 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 //	}
 
 	jmessage[kSessionDescriptionSdpName] = sdp;
-	SendMessage(writer.write(jmessage));			// <-- send to signal server (JS)
+	PostToBrowser(writer.write(jmessage));			// <-- send to signal server (JS)
 }
 
 // this gets called twice, first time with bogus local IP, 2nd time with a good SDP
@@ -669,7 +669,7 @@ void Conductor::OnFailure(const std::string& error)
 }
 
 // inherited generic callback from CreateSessionDescriptionObserver (returns SDP and candidates)
-void Conductor::SendMessage(const std::string& json_object)
+void Conductor::PostToBrowser(const std::string& json_object)
 {
 	std::string* json = new std::string(json_object);
 	LOG(INFO) << "gdh says: SendMessage(): " + *json;

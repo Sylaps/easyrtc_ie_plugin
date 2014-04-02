@@ -45,34 +45,33 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 
 	LOG(INFO) << gettime() + " push to native ***************************** " << json;
 
-	int m = cmd.find("makeoffer");
-	int a = cmd.find("gotanswer");
-
-	int o = cmd.find("gotoffer");
-
-	int h = cmd.find("hangup");
-
-	int t = cmd.find("gotcandidate");
-
+//	int m = cmd.find("makeoffer");
+//	int a = cmd.find("gotanswer");
+//	int o = cmd.find("gotoffer");
+//	int h = cmd.find("hangup");
+//	int t = cmd.find("gotcandidate");
 //	int q = cmd.find("quit");		// quit is not working, causes crash on IE shutdown
-	int d = cmd.find("debug");
+//	int d = cmd.find("debug");
 
-	if (o > -1)
+	if (cmd == "gotoffer")
 		conductor_->ProcessOffer(json);
-	else if (a > -1)
+	else if (cmd == "gotanswer")
 		conductor_->ProcessAnswer(json);
-	else if (h > -1)
+	else if (cmd == "hangup")
 		conductor_->Hangup();
-	else if (m > -1)
+	else if (cmd == "makeoffer")
 		conductor_->CreatOfferSDP();
-	else if (t > -1)
+	else if (cmd == "gotcandidate")
 		conductor_->ProcessCandidate(json);
-	else if (d > -1)
+	else if (cmd == "debug")
 	{
 	#if WIN32
 		::DebugBreak();
 	#endif
 	}
+	return S_OK;
+}
+
 	/*
 	else if (q > -1)
 	{
@@ -80,8 +79,6 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 //well??		PostQuitMessage(0);
 	}
 	*/
-	return S_OK;
-}
 
 void CWebRTCAPI::SendToBrowser(const std::string& json)		// from JavaScriptCallback
 {
@@ -152,19 +149,26 @@ IFACEMETHODIMP CWebRTCAPI::run()
 
 	// here we have a working shutdown:
 
-	PostQuitMessage(0);			// ya really?
+	try
+	{
+//		PostQuitMessage(0);			// don't do this
 
-	client.SignOut();
+		client.SignOut();
 
-	client.disconnect_all();
+		client.disconnect_all();
 
-	conductor_->Close();
+		conductor_->Close();
 
-	talk_base::CleanupSSL();
+		talk_base::CleanupSSL();
 
 // causes ie to crash on close		free(conductor_);
 
-	CoUninitialize();
+		CoUninitialize();
+	} 
+	catch (std::exception& ex)
+	{
+		LOG(LS_ERROR) << "Exception on shutdown " << ex.what();
+	}
 
 	return S_OK;
 }
