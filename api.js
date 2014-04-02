@@ -1,4 +1,4 @@
-(function (window) {
+(function (window, navigator) {
 	"use strict";
 
 	/*utils*/
@@ -10,30 +10,12 @@
 	var idCounter = 0;
 
 	/*
-	* createActiveXDomElement - create activeX dom element, and hand it back for insertion to the DOM
-	*
-	*/
-	function createActiveXDomElement() {
-
-		var id = "activexelement_"+ (idCounter++); // create a sequential id for activex dom elements
-		,   clsid = "CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0" // this will remain static
-		,   domElement = document.createElement("object");
-		//,   codebase = "http://easyrtc.com/activex/codebase" // will need to be customized 
-
-		domElement.setAttribute("id", id);
-		domElement.setAttribute("classid", clsid);
-		domElement.setAttribute("codebase", codebase); 
-
-		return domElement;
-	}
-
-	/*
 	*	addEventHandler(id, functionName, handler)
 	*	Use eval for the power of good. (Bind event handler to native C++ event)
 	*/
-	function addEventHandler(id, functionName, handler) {
+	function addEventHandler(id, handler) {
 		try {
-			var evalString = "function "id+"::"+functionName+" (event) { handler(event); }"; // Eval bind double-colon function to call handler
+			var evalString = "function "+id+"::EventToBrowser (event) { handler(event); }"; // Eval bind double-colon function to call handler
 			eval(evalString);
 		} catch (e) {
 			throw new Error("Could not add custom event handler to "+ id);
@@ -46,6 +28,9 @@
 	*/
 	var emptyEvent = (function () {});
 
+	/*
+	*   Explicit declaration of RTCSignalingState
+	*/
 	var RTCSignalingState = {
 		"stable"             : "stable",
 		"have-local-offer"   : "have-local-offer",
@@ -54,25 +39,69 @@
 		"have-remote-proffer": "have-remote-proffer",
 		"closed"             : "closed"
 	};
+
+	var RTCIceGatheringState = {
+		"new" : "new",
+		"gathering" : "gathering",
+		"complete" : "complete"
+	};
 	
+	// { type:(offer, answer, pranswer), sdp: sdpstring } 
+	function RTCSessionDescription(options) {
+		this.type = options.type;
+		this.sdp = options.sdp;
+	}
+
 	/* 
-	* ctor 
+	* ctor - expecting an object tag in the markup
 	*/
-	function RTCPeerConnection(configuration, constraints) {
+	function IEPlugin(configuration, constraints, activexElement) {
 
-		function NativeBridge (parent /*ID or dom element*/) {
-			var activexElement;
-			this.parent = (typeof parent === 'string') 
-						? document.getElementById(parent) 
-						: parent;
+		function NativeBridge (activexElement) {
+			this.element = activexElement;
+			addEventHandler(activexElement.id, this.nativeEventHandler);
 
-			assert(this.parent !== undefined && this.parent != null, "NativeBridge -> this.parent does not exist.");
-
-			/* create and append activex element needed */
-			this.parent.appendChild(createActiveXDomElement());
+			this.onMakeOfferSuccess = 
+			this.onMakeOfferFailure = 
+			this.onMakeAnswerSuccess = 
+			this.onMakeAnswerFailure = emptyEvent;
 		}
 
-		var nativeBridge = new NativeBridge();
+		NativeBridge.prototype.makeOffer = function (success, failure) {
+			this.element.pushToNative('makeoffer', '');
+			this.onMakeOfferSuccess = success;
+			this.onMakeOfferFailure = failure;
+		};
+
+		NativeBridge.prototype.handleAnswer = function (success, failure) {
+			this.element.pushToNative('handleanswer', '');
+			this.onMakeAnswerSuccess = success;
+			this.onMakeAnswerFailure = failure;
+		};
+
+		NativeBridge.prototype.nativeEventHandler = function (json) {
+
+			if (json.type === 'offer') {
+
+				if (this.onMakeOfferSuccess) {
+					this.onMakeOfferSuccess(json.sdp);
+				}
+
+			} else if (json.type === 'answer') {
+
+				if (this.onMakeAnswerSuccess) {
+					this.onMakeAnswerSuccess(json.sdp);
+				}
+
+			} else if(json.candidate){
+				if (this.onicecandidate) {
+					this.onicecandidate(json);
+				}
+
+			}
+		}
+
+		this.nativeBridge = new NativeBridge(activexElement);
 
 		// Properties
 		this.remoteDescription = "";
@@ -88,44 +117,35 @@
 	}
 
 	/*
-	* Unimplemented parts of the RTCPeerConnection interface
+	* IEPlugin interface implementation
 	*/
-	RTCPeerConnection.prototype.getRemoteStreams = notImplemented;
-	RTCPeerConnection.prototype.getStreamById =    notImplemented;
-	RTCPeerConnection.prototype.addStream = 	   notImplemented;
-	RTCPeerConnection.prototype.removeStream = 	   notImplemented;
-
-
-	RTCPeerConnection.prototype.createOffer = function (success, failure, constraints) {
-
+	IEPlugin.prototype.createOffer = function (success, failure, constraints) {
+		this.nativeBridge.makeOffer(success, failure, constraints);
 	};
 
-	RTCPeerConnection.prototype.createAnswer = function (success, failure, constraints) {
-		
+	IEPlugin.prototype.createAnswer = function (success, failure, constraints) {
+		this.nativeBridge.makeAnswer(success, failure, constraints);
 	};
 
-	RTCPeerConnection.prototype.setLocalDescription = function (description, success, failure) {
-
+	IEPlugin.prototype.close = function () {
+		this.nativeBridge.pushToNative("hangup", '');
 	};
 
-	RTCPeerConnection.prototype.setRemoteDescription = function (description, success, failure) {
+	/*
+	* Unimplemented parts of the IEPlugin interface
+	*/
+	IEPlugin.prototype.setLocalDescription = notImplemented;
+	IEPlugin.prototype.setRemoteDescription = notImplemented;
+	IEPlugin.prototype.updateIce = notImplemented;
+	
+	IEPlugin.prototype.addIceCandidate = notImplemented;
 
-	};
+	IEPlugin.prototype.getRemoteStreams = notImplemented;
+	IEPlugin.prototype.getStreamById =    notImplemented;
+	IEPlugin.prototype.addStream = 	   notImplemented;
+	IEPlugin.prototype.removeStream = 	   notImplemented;
+	IEPlugin.prototype.createDataChannel = notImplemented;
 
-	RTCPeerConnection.prototype.updateIce = function () {
+	window.IEPlugin = IEPlugin;
 
-	};
-
-	RTCPeerConnection.prototype.addIceCandidate = function(candidate, success, failure) {
-		
-	};
-
-	RTCPeerConnection.prototype.close = function () {
-
-	};
-
-	RTCPeerConnection.prototype.createDataChannel = notImplemented;
-
-	window.RTCPeerConnection = RTCPeerConnection;
-
-})(window);
+})(window, navigator);
