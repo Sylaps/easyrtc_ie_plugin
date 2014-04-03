@@ -1,5 +1,6 @@
-(function (window, navigator) {
-	"use strict";
+(function (window, document) {
+
+	window.callback_registry = {};
 
 	/*utils*/
 	function assert(condition, failureMessage) { if (!condition) { throw new Error("Assert failed: " + message); } }
@@ -10,10 +11,25 @@
 	*/
 	function addEventHandler(id, handler) {
 		try {
+			
 			// Eval bind double-colon function to call handler
-			var evalString = "function " + id + "::EventToBrowser (event) { handler(event); }"; 
-			eval(evalString);
+			window.callback_registry[id+"::EventToBrowser"] = handler;
+
+			var evalString = 
+				"function " + id + "::EventToBrowser (event) { "+
+					" window.callback_registry['" + id + "::EventToBrowser'](event); "+
+				"}";
+
+
+			with(window){
+				window.eval(evalString);
+				window.eval("var test = 'I are global';");
+			}
+
+			//document.getElementById(id).attachEvent("EventToBrowser", handler);
+
 		} catch (e) {
+			debugger;
 			console.log(e);
 			throw new Error("Could not add custom event handler to "+ id);
 		}
@@ -29,8 +45,11 @@
 		function NativeBridge (activexElement) {
 			this.element = activexElement;
 			addEventHandler(activexElement.id, this.nativeEventHandler);
-			this.element.run();
 		}
+
+		NativeBridge.prototype.run = function () {
+			this.element.run();
+		};
 
 		NativeBridge.prototype.createOffer = function (success) {
 			this.element.pushToNative('makeoffer', '');
@@ -92,7 +111,11 @@
 		this.nativeBridge.pushToNative("debug", '');
 	};
 
+	RTCPlugin.prototype.run = function () {
+		this.nativeBridge.run();
+	};
+
 	window.RTCPlugin = RTCPlugin;
 
-})(window, navigator);
+})(window, document);
 

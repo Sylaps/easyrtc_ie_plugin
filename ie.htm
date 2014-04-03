@@ -10,6 +10,7 @@
 <body>
 
 	<br>
+	<button onclick="run()">run</button>
 	<button onclick="hangup()">hangup</button>
 	<button onclick="debug()">debug</button>
 	<br>
@@ -27,14 +28,14 @@
 
     <script type="text/javascript">
 
-	var myrtcid;
+	var myrtcid
+	,   rtcPlugin
+	, 	iceServers;
 
 	window.onload = function () {
 
 		var element = document.getElementById("WebRTCAPI")
-		,   socket = io.connect('172.16.40.108:8080')
-		,   rtcPlugin
-		, 	iceServers;
+		,   socket = io.connect('172.16.40.108:8080');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -44,24 +45,18 @@
 			} 
 		};
 
-		
+
 		socket.on('connect', function () {
 
 			socket.emit('easyrtcAuth', auth, function (message) {
+				debugger;
+			    rtcPlugin = new RTCPlugin(element);
 
-
-				setTimeout(function(){//introduce a delay
-
-					debugger;
-				    rtcPlugin = new RTCPlugin(element);
-
-					/* Handle displaying the button to connect to other peers... */
-					addPeerButtons(message);
-					
-					myrtcid = message.msgData.easyrtcid;
-					iceServers = message.msgData.iceConfig.iceServers;
-									
-				}, 5000);
+				/* Handle displaying the button to connect to other peers... */
+				addPeerButtons(message);
+				
+				myrtcid = message.msgData.easyrtcid;
+				iceServers = message.msgData.iceConfig.iceServers;
 
 			});
 
@@ -89,12 +84,30 @@
 	function hangup() {
 		rtcPlugin.close();
 		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : remotertcid } , function() { 
-			console.log("sent hangup.");
+			document.getElementById('divLog').innerHTML += 'hangup()<br>';
 		});
 	}
 
 	function debug() {
 		rtcPlugin.nativeDebug();
+	}
+
+	function offer() {
+		rtcPlugin.createOffer(function () {
+			
+			socket.emit('easyrtcCmd', { 
+				msgType : "offer",
+				targetEasyrtcid : "offer_easyrtc_todo",
+				msgData : { sdp : "", type : "offer" }
+			}, function(){
+				document.getElementById('divLog').innerHTML += 'offerCallback()<br>';
+			});
+
+		});
+	}
+
+	function run() {
+		rtcPlugin.run();
 	}
 
     </script>
