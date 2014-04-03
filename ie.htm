@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTCAPI</title>
+	<script src="socket.io.min.js"></script>
+	<script src="api.js"></script>
+
+</head>
+
+<body>
+
+	<br>
+	<button onclick="hangup()">hangup</button>
+	<button onclick="debug()">debug</button>
+	<br>
+    
+    <object id="WebRTCAPI"
+            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+            height=400
+            width=800></object>
+    
+	<div id='divMe'></div>
+	<div id='divPeers'> </div>
+	<div id='divATL'> </div>
+	<div id='divSDP'> </div>
+	<div id='divLog'> </div>
+
+    <script type="text/javascript">
+
+    	window.onload = function () {
+
+    		var element = document.getElementById("WebRTCAPI");
+    		var rtcPlugin;
+			var socket = io.connect('172.16.40.108:8080');
+			var authjson = { "msgType" : "authenticate", "msgData" : {"apiVersion" : "1.0.10", "applicationName" : "undefined" } };
+
+			socket.on('connect', function () {
+				socket.emit('easyrtcAuth', authjson, function () {
+				    rtcPlugin = new RTCPlugin(element);
+
+				});
+			});
+
+			function hangup() {
+				obj.pushToNative('hangup', '');
+			}
+
+			function debug() {
+				obj.pushToNative('debug', '');
+			}
+
+		};
+
+    </script>
+
+</body>
+</html>

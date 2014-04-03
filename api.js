@@ -2,12 +2,7 @@
 	"use strict";
 
 	/*utils*/
-	/* not-implemented stub */
-	function notImplemented() { throw new Error("Not implemented"); }; 
-
 	function assert(condition, failureMessage) { if (!condition) { throw new Error("Assert failed: " + message); } }
-
-	var idCounter = 0;
 
 	/*
 	*	addEventHandler(id, functionName, handler)
@@ -15,137 +10,89 @@
 	*/
 	function addEventHandler(id, handler) {
 		try {
-			var evalString = "function "+id+"::EventToBrowser (event) { handler(event); }"; // Eval bind double-colon function to call handler
+			// Eval bind double-colon function to call handler
+			var evalString = "function " + id + "::EventToBrowser (event) { handler(event); }"; 
 			eval(evalString);
 		} catch (e) {
-			throw new Error("Could not add custom event handler to "+ id);
 			console.log(e);
+			throw new Error("Could not add custom event handler to "+ id);
 		}
-	}
-
-	/* 
-	*	eventhandler stub 
-	*/
-	var emptyEvent = (function () {});
-
-	/*
-	*   Explicit declaration of RTCSignalingState
-	*/
-	var RTCSignalingState = {
-		"stable"             : "stable",
-		"have-local-offer"   : "have-local-offer",
-		"have-remote-offer"  : "have-remote-offer",
-		"have-local-proffer" : "have-local-proffer",
-		"have-remote-proffer": "have-remote-proffer",
-		"closed"             : "closed"
-	};
-
-	var RTCIceGatheringState = {
-		"new" : "new",
-		"gathering" : "gathering",
-		"complete" : "complete"
-	};
-	
-	// { type:(offer, answer, pranswer), sdp: sdpstring } 
-	function RTCSessionDescription(options) {
-		this.type = options.type;
-		this.sdp = options.sdp;
 	}
 
 	/* 
 	* ctor - expecting an object tag in the markup
 	*/
-	function IEPlugin(configuration, constraints, activexElement) {
+	function RTCPlugin(activexElement) {
+
+		var self = this;
 
 		function NativeBridge (activexElement) {
 			this.element = activexElement;
 			addEventHandler(activexElement.id, this.nativeEventHandler);
-
-			this.onMakeOfferSuccess = 
-			this.onMakeOfferFailure = 
-			this.onMakeAnswerSuccess = 
-			this.onMakeAnswerFailure = emptyEvent;
+			this.element.run();
 		}
 
-		NativeBridge.prototype.makeOffer = function (success, failure) {
+		NativeBridge.prototype.createOffer = function (success) {
 			this.element.pushToNative('makeoffer', '');
-			this.onMakeOfferSuccess = success;
-			this.onMakeOfferFailure = failure;
+			this.onCreateOffer = success;
 		};
 
-		NativeBridge.prototype.handleAnswer = function (success, failure) {
-			this.element.pushToNative('handleanswer', '');
-			this.onMakeAnswerSuccess = success;
-			this.onMakeAnswerFailure = failure;
+		NativeBridge.prototype.handleOffer = function (success, offer) {
+			this.element.pushToNative('handleoffer', offer);
+			this.onHandleOffer = success;
+		};
+
+		NativeBridge.prototype.handleAnswer = function (success, answer) {
+			this.element.pushToNative('handleanswer', answer);
+			this.onHandleAnswer = success;
 		};
 
 		NativeBridge.prototype.nativeEventHandler = function (json) {
 
-			if (json.type === 'offer') {
-
-				if (this.onMakeOfferSuccess) {
-					this.onMakeOfferSuccess(json.sdp);
-				}
-
-			} else if (json.type === 'answer') {
-
-				if (this.onMakeAnswerSuccess) {
-					this.onMakeAnswerSuccess(json.sdp);
-				}
-
-			} else if(json.candidate){
-				if (this.onicecandidate) {
-					this.onicecandidate(json);
-				}
-
+			if (json.type === 'offer' && this.onCreateOffer) {
+				this.onCreateOffer(json.sdp);
+			
+			} else if (json.type === 'answer' && this.onCreateAnswer) {
+				this.onCreateAnswer(json.sdp);
+			
+			} else if(json.candidate && this.onicecandidate) {
+				self.onicecandidate(json);
 			}
 		}
-
 		this.nativeBridge = new NativeBridge(activexElement);
-
-		// Properties
-		this.remoteDescription = "";
-		this.signalingState = RTCSignalingState.closed;
-		
-		this.onnegotiationneeded = 
-		this.onicecandidate = 
-		this.onsignalingstatechange = 
-		this.onremovestream = 
-		this.onaddstream = 
-		this.ondatachannel = emptyEvent;
 
 	}
 
+	RTCPlugin.prototype.onicecandidate = function (){ console.log("onicecandidate"); };
+
 	/*
-	* IEPlugin interface implementation
+	* RTCPlugin interface implementation
 	*/
-	IEPlugin.prototype.createOffer = function (success, failure, constraints) {
-		this.nativeBridge.makeOffer(success, failure, constraints);
+	RTCPlugin.prototype.createOffer = function (success) {
+		this.nativeBridge.createOffer(success);
 	};
 
-	IEPlugin.prototype.createAnswer = function (success, failure, constraints) {
-		this.nativeBridge.makeAnswer(success, failure, constraints);
+	RTCPlugin.prototype.handleOffer = function (success, offer) {
+		this.nativeBridge.handleOffer(success, JSON.stringify(offer));
 	};
 
-	IEPlugin.prototype.close = function () {
+	RTCPlugin.prototype.handleAnswer = function (success, answer) {
+		this.nativeBridge.handleAnswer(success, JSON.stringify(answer));
+	};
+
+	RTCPlugin.prototype.handleCandidate = function (candidate) {
+		this.nativeBridge.pushToNative("handlecandidate", JSON.stringify(candidate));
+	};
+
+	RTCPlugin.prototype.close = function () {
 		this.nativeBridge.pushToNative("hangup", '');
 	};
 
-	/*
-	* Unimplemented parts of the IEPlugin interface
-	*/
-	IEPlugin.prototype.setLocalDescription = notImplemented;
-	IEPlugin.prototype.setRemoteDescription = notImplemented;
-	IEPlugin.prototype.updateIce = notImplemented;
-	
-	IEPlugin.prototype.addIceCandidate = notImplemented;
+	RTCPlugin.prototype.debugNative = function () {
+		this.nativeBridge.pushToNative("debug", '');
+	};
 
-	IEPlugin.prototype.getRemoteStreams = notImplemented;
-	IEPlugin.prototype.getStreamById =    notImplemented;
-	IEPlugin.prototype.addStream = 	   notImplemented;
-	IEPlugin.prototype.removeStream = 	   notImplemented;
-	IEPlugin.prototype.createDataChannel = notImplemented;
-
-	window.IEPlugin = IEPlugin;
+	window.RTCPlugin = RTCPlugin;
 
 })(window, navigator);
+
