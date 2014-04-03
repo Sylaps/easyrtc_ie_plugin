@@ -190,7 +190,7 @@ protected:
 	// Send a message to the remote peer.
 	void PostToBrowser(const std::string& json);
 
-	int peer_id_;
+//	int peer_id_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>peer_connection_factory_;
 

@@ -83,7 +83,9 @@ protected:
 };
 
 Conductor::Conductor(PeerConnectionClient* client, MainWindow* main_wnd)
-: peer_id_(-1), peerConnectionClient_(client), mainWindow_(main_wnd)
+: 
+// peer_id_(-1), 
+peerConnectionClient_(client), mainWindow_(main_wnd)
 {
 	peerConnectionClient_->RegisterObserver(this);
 	main_wnd->RegisterObserver(this);
@@ -122,7 +124,7 @@ void Conductor::Hangup()		// gdh
 {
 	if (peer_connection_.get())
 	{
-		peerConnectionClient_->SendHangUp(peer_id_);
+		peerConnectionClient_->SendHangUp(0); //  peer_id_);
 
 		peerConnectionClient_->SignOut();
 		peerConnectionClient_->disconnect_all();
@@ -153,7 +155,7 @@ void Conductor::getlocalvideo()		// gdh
 
 void Conductor::CreatOfferSDP()		// gdh
 {
-	peer_id_ = 4;				// TODO remove peer_id_
+//	peer_id_ = 4;				// TODO remove peer_id_
 	LOG(INFO) << "createoffer ***********************";
 
 	// both of these next 2 lines seem to work the same way
@@ -289,12 +291,12 @@ void Conductor::OnPeerConnected(int id, const std::string& name)
 void Conductor::OnPeerDisconnected(int id)
 {
 	LOG(INFO) << __FUNCTION__;
-	if (id == peer_id_)
+//	if (id == peer_id_)
 	{
 		LOG(INFO) << "Our peer disconnected";
 		mainWindow_->QueueUIThreadCallback(PEER_CONNECTION_CLOSED, NULL);
 	}
-	else
+//	else
 	{
 		// Refresh the list if we're showing it.
 //		if (mainWindow_->current_ui() == MainWindow::LIST_PEERS)
@@ -312,7 +314,7 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message)
 	if (!peer_connection_.get())
 	{
 //		ASSERT(peer_id_ == -1);
-		peer_id_ = peer_id;
+//		peer_id_ = peer_id;
 
 		if (!InitializePeerConnection())
 		{
@@ -423,8 +425,8 @@ void Conductor::StartLogin(const std::string& server, int port)
 
 void Conductor::ConnectToPeer(int peer_id)
 {
-	ASSERT(peer_id_ == -1);
-	ASSERT(peer_id != -1);
+//	ASSERT(peer_id_ == -1);
+//	ASSERT(peer_id != -1);
 
 	if (peer_connection_.get())
 	{
@@ -435,7 +437,7 @@ void Conductor::ConnectToPeer(int peer_id)
 
 	if (InitializePeerConnection())
 	{
-		peer_id_ = peer_id;
+//		peer_id_ = peer_id;
 		peer_connection_->CreateOffer(this, NULL);
 	}
 	else
@@ -507,7 +509,7 @@ void Conductor::DisconnectFromCurrentPeer()
 	LOG(INFO) << __FUNCTION__;
 	if (peer_connection_.get())
 	{
-		peerConnectionClient_->SendHangUp(peer_id_);
+		peerConnectionClient_->SendHangUp(0); //  peer_id_);
 		DeletePeerConnection();
 	}
 
@@ -569,7 +571,8 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 			msg = pending_messages_.front();
 			pending_messages_.pop_front();
 
-			if (!peerConnectionClient_->SendToPeer(peer_id_, *msg) && peer_id_ != -1)
+			// if (!peerConnectionClient_->SendToPeer(peer_id_, *msg) && peer_id_ != -1)
+			if (!peerConnectionClient_->SendToPeer(0, *msg)) //  && peer_id_ != -1)
 			{
 				LOG(LS_ERROR) << "SendToPeer failed";
 				//DisconnectFromServer();
@@ -577,8 +580,8 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 			delete msg;
 		}
 
-		if (!peer_connection_.get())
-			peer_id_ = -1;
+//		if (!peer_connection_.get())
+//			peer_id_ = -1;
 
 		break;
 

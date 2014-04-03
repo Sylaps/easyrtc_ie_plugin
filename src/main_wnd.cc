@@ -306,11 +306,11 @@ void MainWnd::OnPaint()
 			{
 				const BITMAPINFO& bmi = local_renderer->bmi();
 				image = local_renderer->image();
-				int thumb_width = bmi.bmiHeader.biWidth / 4;
-				int thumb_height = abs(bmi.bmiHeader.biHeight) / 4;
+				int thumb_width = bmi.bmiHeader.biWidth / 2;
+				int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
 				StretchDIBits(dc_mem,
-					logical_area.x - thumb_width - 10,
-					logical_area.y - thumb_height - 10,
+					logical_area.x - thumb_width, //  -10,
+					logical_area.y - thumb_height, //  - 10,
 					thumb_width, thumb_height,
 					0, 0, bmi.bmiHeader.biWidth, -bmi.bmiHeader.biHeight,
 					image, &bmi, DIB_RGB_COLORS, SRCCOPY);
