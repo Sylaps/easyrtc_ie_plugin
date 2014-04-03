@@ -155,7 +155,7 @@ var authorizationCallback = function (json) {
 
 };
 
-function hangup() {
+function callmyotherhangup() {
 	hangupjson.targetEasyrtcid = remotertcid;
 	socket.emit('easyrtcCmd', hangupjson, function() { });
 }

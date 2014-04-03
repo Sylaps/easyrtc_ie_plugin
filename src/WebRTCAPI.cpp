@@ -45,14 +45,6 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 
 	LOG(INFO) << gettime() + " push to native ***************************** " << json;
 
-//	int m = cmd.find("makeoffer");
-//	int a = cmd.find("gotanswer");
-//	int o = cmd.find("gotoffer");
-//	int h = cmd.find("hangup");
-//	int t = cmd.find("gotcandidate");
-//	int q = cmd.find("quit");		// quit is not working, causes crash on IE shutdown
-//	int d = cmd.find("debug");
-
 	if (cmd == "handleoffer")
 		conductor_->ProcessOffer(json);
 	else if (cmd == "handleanswer")
