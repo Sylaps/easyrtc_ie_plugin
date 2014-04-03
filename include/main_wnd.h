@@ -63,19 +63,19 @@ public:
 	{
 	}
 
-	enum UI
-	{
-		CONNECT_TO_SERVER,
-		LIST_PEERS,
-		STREAMING,
-	};
+//	enum UI
+//	{
+//		CONNECT_TO_SERVER,
+//		LIST_PEERS,
+//		STREAMING,
+//	};
 
 	virtual void RegisterObserver(MainWndCallback* callback) = 0;
 
 	virtual bool IsWindow() = 0;
 	virtual void MessageBox(const char* caption, const char* text, bool is_error) = 0;
 
-	virtual UI current_ui() = 0;
+//	virtual UI current_ui() = 0;
 
 	virtual void SwitchToConnectUI() = 0;
 	virtual void SwitchToPeerList(const Peers& peers) = 0;
@@ -117,10 +117,11 @@ public:
 	virtual void SwitchToPeerList(const Peers& peers);
 	virtual void SwitchToStreamingUI();
 	virtual void MessageBox(const char* caption, const char* text, bool is_error);
-	virtual UI current_ui()
-	{
-		return ui_;
-	}
+
+//	virtual UI current_ui()
+//	{
+//		return ui_;
+//	}
 
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
@@ -197,14 +198,14 @@ public:
 	};
 
 protected:
-	enum ChildWindowID
-	{
-		EDIT_ID = 1,
-		BUTTON_ID,
-		LABEL1_ID,
-		LABEL2_ID,
-		LISTBOX_ID,
-	};
+//	enum ChildWindowID
+//	{
+//		EDIT_ID = 1,
+//		BUTTON_ID,
+//		LABEL1_ID,
+//		LABEL2_ID,
+//		LISTBOX_ID,
+//	};
 
 	void OnDestroyed();
 
@@ -215,8 +216,8 @@ protected:
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 	static bool RegisterWindowClass();
 
-	void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name, DWORD control_style, DWORD ex_style);
-	void CreateChildWindows();
+//	void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name, DWORD control_style, DWORD ex_style);
+//	void CreateChildWindows();
 
 //	void LayoutConnectUI(bool show);
 //	void LayoutPeerListUI(bool show);
@@ -226,7 +227,7 @@ protected:
 private:
 	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
 	talk_base::scoped_ptr<VideoRenderer> remote_renderer_;
-	UI ui_;
+//	UI ui_;
 	HWND wnd_;
 	DWORD ui_thread_id_;
 

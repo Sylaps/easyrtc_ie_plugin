@@ -209,8 +209,8 @@ void Conductor::EnsureStreamingUI()
 	ASSERT(peer_connection_.get() != NULL);
 	if (mainWindow_->IsWindow())
 	{
-		if (mainWindow_->current_ui() != MainWindow::STREAMING)
-			mainWindow_->SwitchToStreamingUI();
+//		if (mainWindow_->current_ui() != MainWindow::STREAMING)
+//			mainWindow_->SwitchToStreamingUI();
 	}
 }
 
@@ -282,8 +282,8 @@ void Conductor::OnPeerConnected(int id, const std::string& name)
 {
 	LOG(INFO) << __FUNCTION__;
 	// Refresh the list if we're showing it.
-	if (mainWindow_->current_ui() == MainWindow::LIST_PEERS)
-		mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
+//	if (mainWindow_->current_ui() == MainWindow::LIST_PEERS)
+//		mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
 }
 
 void Conductor::OnPeerDisconnected(int id)
@@ -297,8 +297,8 @@ void Conductor::OnPeerDisconnected(int id)
 	else
 	{
 		// Refresh the list if we're showing it.
-		if (mainWindow_->current_ui() == MainWindow::LIST_PEERS)
-			mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
+//		if (mainWindow_->current_ui() == MainWindow::LIST_PEERS)
+//			mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
 	}
 }
 

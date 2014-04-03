@@ -86,7 +86,9 @@ namespace
 }  // namespace
 
 MainWnd::MainWnd()
-	: ui_(CONNECT_TO_SERVER), wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL)
+	: 
+//ui_(CONNECT_TO_SERVER), 
+	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL)
 {
 }
 
@@ -182,7 +184,7 @@ void MainWnd::SwitchToConnectUI()
 {
 //	ASSERT(IsWindow());
 //	LayoutPeerListUI(false);
-	ui_ = CONNECT_TO_SERVER;
+//	ui_ = CONNECT_TO_SERVER;
 //	LayoutConnectUI(true);
 //	::SetFocus(edit1_);
 }
@@ -209,7 +211,7 @@ void MainWnd::SwitchToStreamingUI()
 {
 //	LayoutConnectUI(false);
 //	LayoutPeerListUI(false);
-	ui_ = STREAMING;
+//	ui_ = STREAMING;
 }
 
 void MainWnd::MessageBox(const char* caption, const char* text, bool is_error)
@@ -346,7 +348,7 @@ void MainWnd::OnPaint()
 			::SelectObject(ps.hdc, old_font);
 		}
 	}
-	else if (ui_ == STREAMING && local_renderer)
+	else if (local_renderer)
 	{
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 
@@ -401,7 +403,7 @@ void MainWnd::OnPaint()
 		::FillRect(ps.hdc, &rc, brush);
 		::DeleteObject(brush);
 
-		LPCTSTR pszText = _T("welcome easyrtc fan, how are ya");
+		LPCTSTR pszText = _T("hello easyrtc fan, how are ya");
 //		TextOut(ps.hdc, (rc.left + rc.right) / 2, (rc.top + rc.bottom) / 2, pszText, lstrlen(pszText));
 		TextOut(ps.hdc, 50, 50, pszText, lstrlen(pszText));
 	}
@@ -458,22 +460,22 @@ bool MainWnd::OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result)
 		return true;
 
 	case WM_SETFOCUS:
-		if (ui_ == CONNECT_TO_SERVER)
+//		if (ui_ == CONNECT_TO_SERVER)
 		{
 //			SetFocus(edit1_);
 		}
-		else if (ui_ == LIST_PEERS)
+//		else if (ui_ == LIST_PEERS)
 		{
 //			SetFocus(listbox_);
 		}
 		return true;
 
 	case WM_SIZE:
-		if (ui_ == CONNECT_TO_SERVER)
+//		if (ui_ == CONNECT_TO_SERVER)
 		{
 //			LayoutConnectUI(true);
 		}
-		else if (ui_ == LIST_PEERS)
+//		else if (ui_ == LIST_PEERS)
 		{
 //			LayoutPeerListUI(true);
 		}
@@ -572,6 +574,7 @@ bool MainWnd::RegisterWindowClass()
 	return wnd_class_ != 0;
 }
 
+/*
 void MainWnd::CreateChildWindow(HWND* wnd, MainWnd::ChildWindowID id,
 	const wchar_t* class_name, DWORD control_style, DWORD ex_style)
 {
@@ -588,7 +591,9 @@ void MainWnd::CreateChildWindow(HWND* wnd, MainWnd::ChildWindowID id,
 	::SendMessage(*wnd, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()),
 		TRUE);
 }
+*/
 
+/*
 void MainWnd::CreateChildWindows()
 {
 	// Create the child windows in tab order.
@@ -603,6 +608,7 @@ void MainWnd::CreateChildWindows()
 //	::SetWindowTextA(edit1_, GetDefaultServerName().c_str());
 //	::SetWindowTextA(edit2_, "8888");
 }
+*/
 
 // void MainWnd::LayoutConnectUI(bool show)
 // {
