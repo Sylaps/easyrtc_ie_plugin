@@ -296,6 +296,7 @@ void MainWnd::OnPaint()
 			::DeleteObject(brush);
 
 			int x = (logical_area.x / 2) - (width / 2);
+			x = 0;
 			int y = (logical_area.y / 2) - (height / 2);
 
 			StretchDIBits(dc_mem, x, y, width, height,
@@ -315,8 +316,7 @@ void MainWnd::OnPaint()
 					image, &bmi, DIB_RGB_COLORS, SRCCOPY);
 			}
 
-			BitBlt(ps.hdc, 0, 0, logical_area.x, logical_area.y,
-				dc_mem, 0, 0, SRCCOPY);
+			BitBlt(ps.hdc, 0, 0, logical_area.x, logical_area.y, dc_mem, 0, 0, SRCCOPY);
 
 			// Cleanup.
 			::SelectObject(dc_mem, bmp_old);

@@ -147,8 +147,8 @@ void Conductor::getlocalvideo()		// gdh
 {
 	InitializePeerConnection();
 
-	peer_id_ = 4;
-	peer_connection_->CreateOffer(this, NULL);
+//	peer_id_ = 4;
+//	peer_connection_->CreateOffer(this, NULL);
 }
 
 void Conductor::CreatOfferSDP()		// gdh
@@ -415,11 +415,11 @@ void Conductor::StartLogin(const std::string& server, int port)
 	peerConnectionClient_->Connect(server, port, GetPeerName());
 }
 
-void Conductor::DisconnectFromServer()
-{
-	if (peerConnectionClient_->is_connected())
-		peerConnectionClient_->SignOut();
-}
+//void Conductor::DisconnectFromServer()
+//{
+//	if (peerConnectionClient_->is_connected())
+//		peerConnectionClient_->SignOut();
+//}
 
 void Conductor::ConnectToPeer(int peer_id)
 {
@@ -539,7 +539,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 		}
 		else
 		{
-			DisconnectFromServer();
+			//DisconnectFromServer();
 		}
 		break;
 
@@ -572,7 +572,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 			if (!peerConnectionClient_->SendToPeer(peer_id_, *msg) && peer_id_ != -1)
 			{
 				LOG(LS_ERROR) << "SendToPeer failed";
-				DisconnectFromServer();
+				//DisconnectFromServer();
 			}
 			delete msg;
 		}

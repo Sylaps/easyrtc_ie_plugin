@@ -119,9 +119,12 @@ IFACEMETHODIMP CWebRTCAPI::run()
 		LOG(LS_ERROR) << "error failed to init ssl";
 
 	conductor_ = new talk_base::RefCountedObject<Conductor>(&client, &mainWindow);
-	conductor_->javascriptCallback_ = this;		// the conductor needs to be able to call us
+	conductor_->SetJSCallback(this);
 
-//	conductor->getlocalvideo();   perhaps we'd like to start with the local video?
+	// *** keep ***
+	// display (only) the local video:
+	//		conductor_->getlocalvideo(); 
+	// but it does not restore the local video after a hangup (yet...)
 
 	// Main loop.
 	MSG msg;

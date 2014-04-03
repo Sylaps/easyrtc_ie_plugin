@@ -116,10 +116,15 @@ public:
 //		SetMandatory(MediaConstraintsInterface::kEnableDtlsSrtp, true);
 	}
 
-	JavaScriptCallback *javascriptCallback_;
+	void SetJSCallback(JavaScriptCallback *jsc)
+	{
+		javascriptCallback_ = jsc;
+	}
 
 protected:
 	~Conductor();
+
+	JavaScriptCallback *javascriptCallback_;
 
 	bool InitializePeerConnection();	
 	void DeletePeerConnection();
@@ -169,7 +174,7 @@ protected:
 
 	virtual void StartLogin(const std::string& server, int port);
 
-	virtual void DisconnectFromServer();
+//	virtual void DisconnectFromServer();
 
 	virtual void ConnectToPeer(int peer_id);
 
@@ -183,7 +188,7 @@ protected:
 
 protected:
 	// Send a message to the remote peer.
-	void PostToBrowser(const std::string& json_object);
+	void PostToBrowser(const std::string& json);
 
 	int peer_id_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
