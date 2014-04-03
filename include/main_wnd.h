@@ -208,7 +208,7 @@ protected:
 
 	void OnDestroyed();
 
-	void OnDefaultAction();
+//	void OnDefaultAction();
 
 	bool OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result);
 
@@ -218,10 +218,10 @@ protected:
 	void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name, DWORD control_style, DWORD ex_style);
 	void CreateChildWindows();
 
-	void LayoutConnectUI(bool show);
-	void LayoutPeerListUI(bool show);
+//	void LayoutConnectUI(bool show);
+//	void LayoutPeerListUI(bool show);
 
-	void HandleTabbing();
+//	void HandleTabbing();
 
 private:
 	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
