@@ -123,6 +123,10 @@ void Conductor::Hangup()		// gdh
 	if (peer_connection_.get())
 	{
 		peerConnectionClient_->SendHangUp(peer_id_);
+
+		peerConnectionClient_->SignOut();
+		peerConnectionClient_->disconnect_all();
+
 		DeletePeerConnection();
 	}
 }
@@ -193,12 +197,11 @@ bool Conductor::InitializePeerConnection()
 
 void Conductor::DeletePeerConnection()
 {
-	peer_connection_ = NULL;
+	peer_connection_ = NULL;	// doing this later cause the last video image to remain on screen
 	active_streams_.clear();
 	mainWindow_->StopLocalRenderer();
 	mainWindow_->StopRemoteRenderer();
-	peer_connection_factory_ = NULL;
-	peer_id_ = -1;
+	peer_connection_factory_ = NULL;	
 }
 
 void Conductor::EnsureStreamingUI()
@@ -622,45 +625,9 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 	std::string sdp;
 	desc->ToString(&sdp);
 
-//	LOG(INFO) << "\nhello local SDP:\n" << sdp;
-//	int zeros = sdp.find("a=rtcp:1 IN IP4 0.0.0.0");		 // ignore a=rtcp:1 IN IP4 0.0.0.0
-//	if (zeros == -1)
-//	{
-//		LOG(INFO) << "\n\n\ngot good sdp\n\n\n";
-//	}
-
 	jmessage[kSessionDescriptionSdpName] = sdp;
 	PostToBrowser(writer.write(jmessage));			// <-- send to signal server (JS)
 }
-
-// this gets called twice, first time with bogus local IP, 2nd time with a good SDP
-/*  gdh ignore this shit
-void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc)
-{
-	LOG(INFO) << "OnSuccess - expecting sdp";
-
-	peer_connection_->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desc);
-	Json::StyledWriter writer;
-	Json::Value jmessage;
-	jmessage[kSessionDescriptionTypeName] = desc->type();
-
-	std::string sdp;
-	desc->ToString(&sdp);
-	jmessage[kSessionDescriptionSdpName] = sdp;
-
-	int zeros = sdp.find("a=rtcp:1 IN IP4 0.0.0.0");		 // ignore a=rtcp:1 IN IP4 0.0.0.0
-	if (zeros == -1)
-	{
-		LOG(INFO) << "\n\n\ngot sdp\n\n\n";
-		SendMessage(writer.write(jmessage));
-	}
-	else
-	{
-		LOG(INFO) << "no (good) sdp yet";
-		LOG(INFO) << sdp;
-	}
-}
-*/
 
 void Conductor::OnFailure(const std::string& error)
 {
@@ -673,29 +640,6 @@ void Conductor::PostToBrowser(const std::string& json_object)
 	std::string* json = new std::string(json_object);
 	LOG(INFO) << "gdh says: SendMessage(): " + *json;
 
-// obsolete?	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, json);		// <-- send this json to JS
-
-// gdh: also send to browser
 	std::string* msg = new std::string(json_object);
 	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, msg);
 }
-
-/*
-void Conductor::SendMessage(const std::string& json_object)
-{
-	std::string* msg = new std::string(json_object);
-
-	// call google signal server:	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
-
-	// may need to post???
-
-	LOG(INFO) << "****************************** send to browser:";
-	LOG(INFO) << json_object;
-
-//	that->SendToBrowser(json_object);
-
-	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_UPJS, msg);
-
-	LOG(INFO) << "sent to browser. ******************************";
-}
-*/

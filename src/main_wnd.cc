@@ -86,9 +86,7 @@ namespace
 }  // namespace
 
 MainWnd::MainWnd()
-: ui_(CONNECT_TO_SERVER), wnd_(NULL), edit1_(NULL), edit2_(NULL),
-label1_(NULL), label2_(NULL), button_(NULL), listbox_(NULL),
-destroyed_(false), callback_(NULL), nested_msg_(NULL)
+	: ui_(CONNECT_TO_SERVER), wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL)
 {
 }
 
@@ -114,7 +112,7 @@ bool MainWnd::Create(HWND hwnd)
 
 	::SendMessage(wnd_, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()), TRUE);
 
-	CreateChildWindows();
+//	CreateChildWindows();
 	SwitchToConnectUI();
 
 	return wnd_ != NULL;
@@ -148,23 +146,23 @@ bool MainWnd::PreTranslateMessage(MSG* msg)
 	{
 		if (msg->wParam == VK_TAB)
 		{
-			HandleTabbing();
+//			HandleTabbing();
 			ret = true;
 		}
 		else if (msg->wParam == VK_RETURN)
 		{
-			OnDefaultAction();
+//			OnDefaultAction();
 			ret = true;
 		}
 		else if (msg->wParam == VK_ESCAPE)
 		{
-			if (callback_)
-			{
-				if (ui_ == STREAMING)
-					callback_->DisconnectFromCurrentPeer();
-				else
-					callback_->DisconnectFromServer();
-			}
+//			if (callback_)
+//			{
+//				if (ui_ == STREAMING)
+//					callback_->DisconnectFromCurrentPeer();
+//				else
+//					callback_->DisconnectFromServer();
+//			}
 		}
 	}
 	else if (msg->hwnd == NULL && msg->message != WM_TIMER)
@@ -182,15 +180,16 @@ bool MainWnd::PreTranslateMessage(MSG* msg)
 
 void MainWnd::SwitchToConnectUI()
 {
-	ASSERT(IsWindow());
-	LayoutPeerListUI(false);
+//	ASSERT(IsWindow());
+//	LayoutPeerListUI(false);
 	ui_ = CONNECT_TO_SERVER;
-	LayoutConnectUI(true);
-	::SetFocus(edit1_);
+//	LayoutConnectUI(true);
+//	::SetFocus(edit1_);
 }
 
 void MainWnd::SwitchToPeerList(const Peers& peers)
 {
+	/*
 	LayoutConnectUI(false);
 
 	::SendMessage(listbox_, LB_RESETCONTENT, 0, 0);
@@ -203,12 +202,13 @@ void MainWnd::SwitchToPeerList(const Peers& peers)
 	ui_ = LIST_PEERS;
 	LayoutPeerListUI(true);
 	::SetFocus(listbox_);
+	*/
 }
 
 void MainWnd::SwitchToStreamingUI()
 {
-	LayoutConnectUI(false);
-	LayoutPeerListUI(false);
+//	LayoutConnectUI(false);
+//	LayoutPeerListUI(false);
 	ui_ = STREAMING;
 }
 
@@ -220,7 +220,6 @@ void MainWnd::MessageBox(const char* caption, const char* text, bool is_error)
 
 	::MessageBoxA(handle(), text, caption, flags);
 }
-
 
 void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video)
 {
@@ -259,7 +258,6 @@ void MainWnd::OnPaint()
 	VideoRenderer* local_renderer = local_renderer_.get();
 	VideoRenderer* remote_renderer = remote_renderer_.get();
 
-	// gdh	if (ui_ == STREAMING && remote_renderer && local_renderer)
 	if (remote_renderer && local_renderer)
 	{
 		AutoLock<VideoRenderer> local_lock(local_renderer);
@@ -348,10 +346,7 @@ void MainWnd::OnPaint()
 			::SelectObject(ps.hdc, old_font);
 		}
 	}
-
-	// false
-	else if (ui_ == STREAMING && local_renderer && false)		// gdh
-
+	else if (ui_ == STREAMING && local_renderer)
 	{
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 
@@ -400,12 +395,15 @@ void MainWnd::OnPaint()
 			::DeleteDC(dc_mem);
 		}
 	}
-
 	else
 	{
 		HBRUSH brush = ::CreateSolidBrush(::GetSysColor(COLOR_WINDOW));
 		::FillRect(ps.hdc, &rc, brush);
 		::DeleteObject(brush);
+
+		LPCTSTR pszText = _T("welcome easyrtc fan, how are ya");
+//		TextOut(ps.hdc, (rc.left + rc.right) / 2, (rc.top + rc.bottom) / 2, pszText, lstrlen(pszText));
+		TextOut(ps.hdc, 50, 50, pszText, lstrlen(pszText));
 	}
 
 	::EndPaint(handle(), &ps);
@@ -416,34 +414,36 @@ void MainWnd::OnDestroyed()
 	PostQuitMessage(0);
 }
 
+/*
 void MainWnd::OnDefaultAction()
 {
 	if (!callback_)
 		return;
 	if (ui_ == CONNECT_TO_SERVER)
 	{
-		std::string server(GetWindowText(edit1_));
-		std::string port_str(GetWindowText(edit2_));
-		int port = port_str.length() ? atoi(port_str.c_str()) : 0;
-		callback_->StartLogin(server, port);
+//		std::string server(GetWindowText(edit1_));
+//		std::string port_str(GetWindowText(edit2_));
+//		int port = port_str.length() ? atoi(port_str.c_str()) : 0;
+//		callback_->StartLogin(server, port);
 	}
 	else if (ui_ == LIST_PEERS)
 	{
-		LRESULT sel = ::SendMessage(listbox_, LB_GETCURSEL, 0, 0);
-		if (sel != LB_ERR)
-		{
-			LRESULT peer_id = ::SendMessage(listbox_, LB_GETITEMDATA, sel, 0);
-			if (peer_id != -1 && callback_)
-			{
-				callback_->ConnectToPeer(peer_id);
-			}
-		}
+//		LRESULT sel = ::SendMessage(listbox_, LB_GETCURSEL, 0, 0);
+//		if (sel != LB_ERR)
+//		{
+//			LRESULT peer_id = ::SendMessage(listbox_, LB_GETITEMDATA, sel, 0);
+//			if (peer_id != -1 && callback_)
+//			{
+//				callback_->ConnectToPeer(peer_id);
+//			}
+//		}
 	}
 	else
 	{
 		MessageBoxA(wnd_, "OK!", "Yeah", MB_OK);
 	}
 }
+*/
 
 bool MainWnd::OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result)
 {
@@ -460,22 +460,22 @@ bool MainWnd::OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result)
 	case WM_SETFOCUS:
 		if (ui_ == CONNECT_TO_SERVER)
 		{
-			SetFocus(edit1_);
+//			SetFocus(edit1_);
 		}
 		else if (ui_ == LIST_PEERS)
 		{
-			SetFocus(listbox_);
+//			SetFocus(listbox_);
 		}
 		return true;
 
 	case WM_SIZE:
 		if (ui_ == CONNECT_TO_SERVER)
 		{
-			LayoutConnectUI(true);
+//			LayoutConnectUI(true);
 		}
 		else if (ui_ == LIST_PEERS)
 		{
-			LayoutPeerListUI(true);
+//			LayoutPeerListUI(true);
 		}
 		break;
 
@@ -484,6 +484,7 @@ bool MainWnd::OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result)
 		return true;
 
 	case WM_COMMAND:
+		/*
 		if (button_ == reinterpret_cast<HWND>(lp))
 		{
 			if (BN_CLICKED == HIWORD(wp))
@@ -496,6 +497,7 @@ bool MainWnd::OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result)
 				OnDefaultAction();
 			}
 		}
+		*/
 		return true;
 
 	case WM_CLOSE:
@@ -571,8 +573,7 @@ bool MainWnd::RegisterWindowClass()
 }
 
 void MainWnd::CreateChildWindow(HWND* wnd, MainWnd::ChildWindowID id,
-	const wchar_t* class_name, DWORD control_style,
-	DWORD ex_style)
+	const wchar_t* class_name, DWORD control_style, DWORD ex_style)
 {
 	if (::IsWindow(*wnd))
 		return;
@@ -591,23 +592,21 @@ void MainWnd::CreateChildWindow(HWND* wnd, MainWnd::ChildWindowID id,
 void MainWnd::CreateChildWindows()
 {
 	// Create the child windows in tab order.
-	CreateChildWindow(&label1_, LABEL1_ID, L"Static", ES_CENTER | ES_READONLY, 0);
-	CreateChildWindow(&edit1_, EDIT_ID, L"Edit",
-		ES_LEFT | ES_NOHIDESEL | WS_TABSTOP, WS_EX_CLIENTEDGE);
-	CreateChildWindow(&label2_, LABEL2_ID, L"Static", ES_CENTER | ES_READONLY, 0);
-	CreateChildWindow(&edit2_, EDIT_ID, L"Edit",
-		ES_LEFT | ES_NOHIDESEL | WS_TABSTOP, WS_EX_CLIENTEDGE);
-	CreateChildWindow(&button_, BUTTON_ID, L"Button", BS_CENTER | WS_TABSTOP, 0);
+//	CreateChildWindow(&label1_, LABEL1_ID, L"Static", ES_CENTER | ES_READONLY, 0);
+//	CreateChildWindow(&edit1_, EDIT_ID, L"Edit", ES_LEFT | ES_NOHIDESEL | WS_TABSTOP, WS_EX_CLIENTEDGE);
+//	CreateChildWindow(&label2_, LABEL2_ID, L"Static", ES_CENTER | ES_READONLY, 0);
+//	CreateChildWindow(&edit2_, EDIT_ID, L"Edit", ES_LEFT | ES_NOHIDESEL | WS_TABSTOP, WS_EX_CLIENTEDGE);
+//	CreateChildWindow(&button_, BUTTON_ID, L"Button", BS_CENTER | WS_TABSTOP, 0);
 
-	CreateChildWindow(&listbox_, LISTBOX_ID, L"ListBox",
-		LBS_HASSTRINGS | LBS_NOTIFY, WS_EX_CLIENTEDGE);
+//	CreateChildWindow(&listbox_, LISTBOX_ID, L"ListBox", LBS_HASSTRINGS | LBS_NOTIFY, WS_EX_CLIENTEDGE);
 
-	::SetWindowTextA(edit1_, GetDefaultServerName().c_str());
-	::SetWindowTextA(edit2_, "8888");
+//	::SetWindowTextA(edit1_, GetDefaultServerName().c_str());
+//	::SetWindowTextA(edit2_, "8888");
 }
 
-void MainWnd::LayoutConnectUI(bool show)
-{
+// void MainWnd::LayoutConnectUI(bool show)
+// {
+/*
 	struct Windows
 	{
 		HWND wnd;
@@ -658,24 +657,28 @@ void MainWnd::LayoutConnectUI(bool show)
 			::ShowWindow(windows[i].wnd, SW_HIDE);
 		}
 	}
-}
+*/
+// }
 
+/*
 void MainWnd::LayoutPeerListUI(bool show)
 {
 	if (show)
 	{
 		RECT rc;
-		::GetClientRect(wnd_, &rc);
-		::MoveWindow(listbox_, 0, 0, rc.right, rc.bottom, TRUE);
-		::ShowWindow(listbox_, SW_SHOWNA);
+//		::GetClientRect(wnd_, &rc);
+//		::MoveWindow(listbox_, 0, 0, rc.right, rc.bottom, TRUE);
+//		::ShowWindow(listbox_, SW_SHOWNA);
 	}
 	else
 	{
-		::ShowWindow(listbox_, SW_HIDE);
+//		::ShowWindow(listbox_, SW_HIDE);
 		InvalidateRect(wnd_, NULL, TRUE);
 	}
 }
+*/
 
+/*
 void MainWnd::HandleTabbing()
 {
 	bool shift = ((::GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0);
@@ -705,6 +708,7 @@ void MainWnd::HandleTabbing()
 	while (true);
 	::SetFocus(next);
 }
+*/
 
 //
 // MainWnd::VideoRenderer

@@ -193,8 +193,7 @@ protected:
 	PeerConnectionClient* peerConnectionClient_;
 
 	std::deque<std::string*> pending_messages_;
-	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> >
-		active_streams_;
+	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> > active_streams_;
 	std::string server_;
 };
 

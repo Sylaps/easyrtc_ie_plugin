@@ -41,7 +41,6 @@
 #include "talk/media/base/videoframe.h"
 #include "talk/media/base/videorenderer.h"
 
-
 class MainWndCallback
 {
 public:
@@ -117,8 +116,7 @@ public:
 	virtual void SwitchToConnectUI();
 	virtual void SwitchToPeerList(const Peers& peers);
 	virtual void SwitchToStreamingUI();
-	virtual void MessageBox(const char* caption, const char* text,
-		bool is_error);
+	virtual void MessageBox(const char* caption, const char* text, bool is_error);
 	virtual UI current_ui()
 	{
 		return ui_;
@@ -208,24 +206,22 @@ protected:
 		LISTBOX_ID,
 	};
 
-
 	void OnDestroyed();
 
-	void OnDefaultAction();
+//	void OnDefaultAction();
 
 	bool OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result);
 
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 	static bool RegisterWindowClass();
 
-	void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name,
-		DWORD control_style, DWORD ex_style);
+	void CreateChildWindow(HWND* wnd, ChildWindowID id, const wchar_t* class_name, DWORD control_style, DWORD ex_style);
 	void CreateChildWindows();
 
-	void LayoutConnectUI(bool show);
-	void LayoutPeerListUI(bool show);
+//	void LayoutConnectUI(bool show);
+//	void LayoutPeerListUI(bool show);
 
-	void HandleTabbing();
+//	void HandleTabbing();
 
 private:
 	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
@@ -233,12 +229,14 @@ private:
 	UI ui_;
 	HWND wnd_;
 	DWORD ui_thread_id_;
-	HWND edit1_;
-	HWND edit2_;
-	HWND label1_;
-	HWND label2_;
-	HWND button_;
-	HWND listbox_;
+
+//	HWND edit1_;
+//	HWND edit2_;
+//	HWND label1_;
+//	HWND label2_;
+//	HWND button_;
+//	HWND listbox_;
+
 	bool destroyed_;
 	void* nested_msg_;
 	MainWndCallback* callback_;
