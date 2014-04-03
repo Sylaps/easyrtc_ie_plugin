@@ -27,29 +27,75 @@
 
     <script type="text/javascript">
 
-    	window.onload = function () {
+	var myrtcid;
 
-    		var element = document.getElementById("WebRTCAPI");
-    		var rtcPlugin;
-			var socket = io.connect('172.16.40.108:8080');
-			var authjson = { "msgType" : "authenticate", "msgData" : {"apiVersion" : "1.0.10", "applicationName" : "undefined" } };
+	window.onload = function () {
 
-			socket.on('connect', function () {
-				socket.emit('easyrtcAuth', authjson, function () {
+		var element = document.getElementById("WebRTCAPI")
+		,   socket = io.connect('172.16.40.108:8080')
+		,   rtcPlugin
+		, 	iceServers;
+
+		var auth = { 
+			"msgType" : "authenticate", 
+			"msgData" : {
+				"apiVersion" : "1.0.10",
+				"applicationName" : "easyrtc.audioVideo" 
+			} 
+		};
+
+		
+		socket.on('connect', function () {
+
+			socket.emit('easyrtcAuth', auth, function (message) {
+
+
+				setTimeout(function(){//introduce a delay
+
+					debugger;
 				    rtcPlugin = new RTCPlugin(element);
 
-				});
+					/* Handle displaying the button to connect to other peers... */
+					addPeerButtons(message);
+					
+					myrtcid = message.msgData.easyrtcid;
+					iceServers = message.msgData.iceConfig.iceServers;
+									
+				}, 5000);
+
 			});
 
-			function hangup() {
-				obj.pushToNative('hangup', '');
-			}
+		});
+	};
 
-			function debug() {
-				obj.pushToNative('debug', '');
-			}
+	function addPeerButtons(message){
+		document.getElementById('divLog').innerHTML += 'authorizationCallback()<br>';
+		var rtcids = Object.keys(message.msgData.roomData.default.clientList);
 
-		};
+		var htm = '';
+		for(var i = 0; i < rtcids.length; i++) {
+			var n = rtcids[i];
+			if (n !== myrtcid)
+				htm += '<button onclick="offer(\'' + n + '\')">' + n + '</button>';
+		}
+		if (htm !== ''){
+			document.getElementById('divPeers').innerHTML = htm;
+		}
+		else{
+			document.getElementById('divPeers').innerHTML += 'nobody else available'; //  at http://localhost:8080/demos/demo_audio_video_simple.html';
+		}
+	}
+
+	function hangup() {
+		rtcPlugin.close();
+		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : remotertcid } , function() { 
+			console.log("sent hangup.");
+		});
+	}
+
+	function debug() {
+		rtcPlugin.nativeDebug();
+	}
 
     </script>
 
