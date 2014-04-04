@@ -35,7 +35,7 @@
 	window.onload = function () {
 
 		var element = document.getElementById("WebRTCAPI")
-		,   socket = io.connect('172.16.40.108:8080');
+		,   socket = io.connect('172.16.40.111:8080');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -45,11 +45,10 @@
 			} 
 		};
 
-
 		socket.on('connect', function () {
 
 			socket.emit('easyrtcAuth', auth, function (message) {
-				debugger;
+				
 			    rtcPlugin = new RTCPlugin(element);
 
 				/* Handle displaying the button to connect to other peers... */
@@ -58,8 +57,43 @@
 				myrtcid = message.msgData.easyrtcid;
 				iceServers = message.msgData.iceConfig.iceServers;
 
-			});
+				socket.on('easyrtcCmd', function (json) {
+					if (json.msgData && json.msgData.type)	{						// don't need, could just check for sdp...
+						switch(json.msgData.type) {
+						case 'answer':
+							rtcPlugin.handleAnswer(json);
+							break;
+						case 'candidate': 
+						
+							rtcPlugin.handleCandidate({
+								candidate : json.msgData.candidate, 
+								sdpMid : json.msgData.id, 
+								sdpMLineIndex : json.msgData.label
+							});
 
+							break;
+						case 'roomData': 
+							alert('unexpected roomdata: ' + json.msgData.roomData);
+							break;
+						case 'offer': 
+							rtcPlugin.handleOffer(json, function(sdp){
+								socket.emit('easyrtcCmd', { 
+									msgType : "answer",
+									targetEasyrtcid : rtcPlugin.remoteId,
+									msgData : { sdp : sdp, "type" : "answer" }
+								}, function() {
+									//answered.
+								});
+							});
+							break;
+						default:
+							alert('unexpected message from easyrtc server ' + JSON.stringify(json));
+							break;
+						}
+					}
+				});
+
+			});
 		});
 	};
 
@@ -93,14 +127,17 @@
 	}
 
 	function offer() {
+		// create the offer 
 		rtcPlugin.createOffer(function () {
 			
+			// send it off over signaling
 			socket.emit('easyrtcCmd', { 
 				msgType : "offer",
 				targetEasyrtcid : "offer_easyrtc_todo",
 				msgData : { sdp : "", type : "offer" }
-			}, function(){
+			}, function offerCallbackComplete () {
 				document.getElementById('divLog').innerHTML += 'offerCallback()<br>';
+
 			});
 
 		});

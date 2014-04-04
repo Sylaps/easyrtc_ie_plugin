@@ -4,7 +4,7 @@
 
 	/*utils*/
 	function assert(condition, failureMessage) { if (!condition) { throw new Error("Assert failed: " + message); } }
-
+	
 	/*
 	*	addEventHandler(id, functionName, handler)
 	*	Use eval for the power of good. (Bind event handler to native C++ event)
@@ -20,16 +20,11 @@
 					" window.callback_registry['" + id + "::EventToBrowser'](event); "+
 				"}";
 
-
 			with(window){
 				window.eval(evalString);
-				window.eval("var test = 'I are global';");
 			}
 
-			//document.getElementById(id).attachEvent("EventToBrowser", handler);
-
 		} catch (e) {
-			debugger;
 			console.log(e);
 			throw new Error("Could not add custom event handler to "+ id);
 		}
@@ -39,47 +34,9 @@
 	* ctor - expecting an object tag in the markup
 	*/
 	function RTCPlugin(activexElement) {
-
-		var self = this;
-
-		function NativeBridge (activexElement) {
-			this.element = activexElement;
-			addEventHandler(activexElement.id, this.nativeEventHandler);
-		}
-
-		NativeBridge.prototype.run = function () {
-			this.element.run();
-		};
-
-		NativeBridge.prototype.createOffer = function (success) {
-			this.element.pushToNative('makeoffer', '');
-			this.onCreateOffer = success;
-		};
-
-		NativeBridge.prototype.handleOffer = function (success, offer) {
-			this.element.pushToNative('handleoffer', offer);
-			this.onHandleOffer = success;
-		};
-
-		NativeBridge.prototype.handleAnswer = function (success, answer) {
-			this.element.pushToNative('handleanswer', answer);
-			this.onHandleAnswer = success;
-		};
-
-		NativeBridge.prototype.nativeEventHandler = function (json) {
-
-			if (json.type === 'offer' && this.onCreateOffer) {
-				this.onCreateOffer(json.sdp);
-			
-			} else if (json.type === 'answer' && this.onCreateAnswer) {
-				this.onCreateAnswer(json.sdp);
-			
-			} else if(json.candidate && this.onicecandidate) {
-				self.onicecandidate(json);
-			}
-		}
-		this.nativeBridge = new NativeBridge(activexElement);
-
+		this.element = activexElement;
+		addEventHandler(activexElement.id, this.nativeEventHandler);
+		this.remoteId = null;
 	}
 
 	RTCPlugin.prototype.onicecandidate = function (){ console.log("onicecandidate"); };
@@ -87,33 +44,49 @@
 	/*
 	* RTCPlugin interface implementation
 	*/
-	RTCPlugin.prototype.createOffer = function (success) {
-		this.nativeBridge.createOffer(success);
+	RTCPlugin.prototype.createOffer = function (remoteId, success) {
+		this.remoteId = remoteId;
+		this.element.pushToNative('makeoffer', '');
+		this.onCreateOffer = success;
 	};
 
-	RTCPlugin.prototype.handleOffer = function (success, offer) {
-		this.nativeBridge.handleOffer(success, JSON.stringify(offer));
+	RTCPlugin.prototype.handleOffer = function (offer, success) {
+		this.element.pushToNative('handleoffer', JSON.stringify(offer));
+		this.onHandleOffer = success;
 	};
 
-	RTCPlugin.prototype.handleAnswer = function (success, answer) {
-		this.nativeBridge.handleAnswer(success, JSON.stringify(answer));
+	RTCPlugin.prototype.handleAnswer = function (answer, success) {
+		this.element.pushToNative('handleanswer', JSON.stringify(answer));
 	};
 
 	RTCPlugin.prototype.handleCandidate = function (candidate) {
-		this.nativeBridge.pushToNative("handlecandidate", JSON.stringify(candidate));
+		this.element.pushToNative("handlecandidate", JSON.stringify(candidate));
 	};
 
 	RTCPlugin.prototype.close = function () {
-		this.nativeBridge.pushToNative("hangup", '');
+		this.element.pushToNative("hangup", '');
 	};
 
 	RTCPlugin.prototype.debugNative = function () {
-		this.nativeBridge.pushToNative("debug", '');
+		this.element.pushToNative("debug", '');
 	};
 
 	RTCPlugin.prototype.run = function () {
-		this.nativeBridge.run();
+		this.element.run();
 	};
+
+	RTCPlugin.prototype.nativeEventHandler = function (json) {
+
+		if (json.type === 'offer' && this.onCreateOffer) {
+			this.onCreateOffer(json.sdp);
+		
+		} else if (json.type === 'answer' && this.onHandleOffer) { //back from C++
+			this.onHandleOffer(json.sdp);
+		
+		} else if(json.candidate && this.onicecandidate) {
+			this.onicecandidate(json);
+		}
+	}
 
 	window.RTCPlugin = RTCPlugin;
 
