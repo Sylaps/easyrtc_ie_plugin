@@ -153,6 +153,10 @@ void Conductor::getlocalvideo()		// gdh
 //	peer_connection_->CreateOffer(this, NULL);
 }
 
+void Conductor::SetIceServers(std::string icejson)		// gdh
+{
+}
+
 void Conductor::CreatOfferSDP()		// gdh
 {
 //	peer_id_ = 4;				// TODO remove peer_id_
@@ -182,6 +186,14 @@ bool Conductor::InitializePeerConnection()
 
 	webrtc::PeerConnectionInterface::IceServers servers;
 	webrtc::PeerConnectionInterface::IceServer server;
+
+
+
+
+	// TODO gdh set the ice severs now
+
+
+
 	server.uri = GetPeerConnectionString();
 	servers.push_back(server);
 

@@ -85,13 +85,12 @@ public:
 
 	virtual void Close();
 
+	// easyrtc incoming from JS
+	void SetIceServers(std::string json);
 	void CreatOfferSDP();
 	void ProcessAnswer(std::string json);
-
 	void ProcessOffer(std::string);
-
 	void ProcessCandidate(std::string json);
-
 	void Hangup();
 
 	// we might want to just display local until a call is made
@@ -130,6 +129,7 @@ protected:
 	void DeletePeerConnection();
 	void EnsureStreamingUI();
 	void AddStreams();
+
 	cricket::VideoCapturer* OpenVideoCaptureDevice();
 
 	//
@@ -140,14 +140,15 @@ protected:
 		webrtc::PeerConnectionObserver::StateType state_changed)
 	{
 	}
+
 	virtual void OnAddStream(webrtc::MediaStreamInterface* stream);
+
 	virtual void OnRemoveStream(webrtc::MediaStreamInterface* stream);
-	virtual void OnRenegotiationNeeded()
-	{
-	}
-	virtual void OnIceChange()
-	{
-	}
+
+	virtual void OnRenegotiationNeeded() { }
+
+	virtual void OnIceChange() { }
+
 	virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
 	//

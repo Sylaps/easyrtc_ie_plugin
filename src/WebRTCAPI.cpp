@@ -61,6 +61,8 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 		::DebugBreak();
 	#endif
 	}
+	else if (cmd == "seticeservers")
+		conductor_->SetIceServers(json);
 	return S_OK;
 }
 
