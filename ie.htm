@@ -24,8 +24,9 @@
 	<div id='divPeers'> </div>
 	<div id='divATL'> </div>
 	<div id='divSDP'> </div>
-	<div id='divLog'> </div>
-
+	<pre>
+		<div id='divLog'> </div>
+	</pre>
     <script type="text/javascript">
 
 	var myrtcid
@@ -35,7 +36,7 @@
 	window.onload = function () {
 
 		var element = document.getElementById("WebRTCAPI")
-		,   socket = io.connect('172.16.40.111:8080');
+		,   socket = io.connect('172.16.40.108:8080');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -51,20 +52,45 @@
 				
 			    rtcPlugin = new RTCPlugin(element);
 
+			    rtcPlugin.onicecandidate = function (candidate) {
+			    	
+			    	dlog("native onicecandidate");
+
+			    	socket.emit ("easyrtcCmd", {
+					  msgType: "candidate",
+					  senderEasyrtcid: myrtcid,
+					  targetEasyrtcid: rtcPlugin.remoteId,
+					  msgData: {
+					    type: "candidate",
+					    label: json.sdpMLineIndex,
+					    id: json.sdpMid,
+					    candidate: json.candidate
+					  }
+					});
+			    };
+
 				/* Handle displaying the button to connect to other peers... */
+
+				myrtcid = message.msgData.easyrtcid;
 				addPeerButtons(message);
 				
-				myrtcid = message.msgData.easyrtcid;
 				iceServers = message.msgData.iceConfig.iceServers;
 
 				socket.on('easyrtcCmd', function (json) {
+
 					if (json.msgData && json.msgData.type)	{						// don't need, could just check for sdp...
+					
 						switch(json.msgData.type) {
+					
 						case 'answer':
+						
+							dlog('got answer')
 							rtcPlugin.handleAnswer(json);
 							break;
-						case 'candidate': 
 						
+						case 'candidate': 
+								
+							dlog('socket candidate');
 							rtcPlugin.handleCandidate({
 								candidate : json.msgData.candidate, 
 								sdpMid : json.msgData.id, 
@@ -73,22 +99,42 @@
 
 							break;
 						case 'roomData': 
+
 							alert('unexpected roomdata: ' + json.msgData.roomData);
 							break;
+						
 						case 'offer': 
-							rtcPlugin.handleOffer(json, function(sdp){
+							dlog('got offer');
+							dlog(JSON.stringify(json));
+
+							var sdp = json.msgData.sdp;
+							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
+							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
+							sdp = sdp.replace(/\"/g, '');
+
+							json.msgData.sdp = sdp;	
+
+							dlog(json.msgData);
+
+							rtcPlugin.handleOffer(json.senderEasyrtcid, json.msgData, function(sdp){
+								dlog('returning answer');
+								dlog(sdp);
 								socket.emit('easyrtcCmd', { 
 									msgType : "answer",
 									targetEasyrtcid : rtcPlugin.remoteId,
-									msgData : { sdp : sdp, "type" : "answer" }
+									msgData : { sdp : sdp, type : "answer" }
 								}, function() {
-									//answered.
+									dlog("answered");
 								});
 							});
+
 							break;
+						
 						default:
+						
 							alert('unexpected message from easyrtc server ' + JSON.stringify(json));
 							break;
+						
 						}
 					}
 				});
@@ -98,7 +144,7 @@
 	};
 
 	function addPeerButtons(message){
-		document.getElementById('divLog').innerHTML += 'authorizationCallback()<br>';
+		dlog('authorizationCallback()');
 		var rtcids = Object.keys(message.msgData.roomData.default.clientList);
 
 		var htm = '';
@@ -118,7 +164,7 @@
 	function hangup() {
 		rtcPlugin.close();
 		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : remotertcid } , function() { 
-			document.getElementById('divLog').innerHTML += 'hangup()<br>';
+			dlog('hangup()');
 		});
 	}
 
@@ -126,17 +172,16 @@
 		rtcPlugin.nativeDebug();
 	}
 
-	function offer() {
+	function offer(remoteId) {
 		// create the offer 
-		rtcPlugin.createOffer(function () {
-			
+		rtcPlugin.createOffer(remoteId, function (sdp) {
 			// send it off over signaling
 			socket.emit('easyrtcCmd', { 
 				msgType : "offer",
-				targetEasyrtcid : "offer_easyrtc_todo",
-				msgData : { sdp : "", type : "offer" }
+				targetEasyrtcid : remoteId,
+				msgData : { sdp : sdp, type : "offer" }
 			}, function offerCallbackComplete () {
-				document.getElementById('divLog').innerHTML += 'offerCallback()<br>';
+				dlog('offerCallback()');
 
 			});
 
@@ -145,6 +190,10 @@
 
 	function run() {
 		rtcPlugin.run();
+	}
+
+	function dlog(text) {
+		document.getElementById('divLog').innerHTML += text + '<br>';
 	}
 
     </script>
