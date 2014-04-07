@@ -171,8 +171,7 @@ bool MainWnd::PreTranslateMessage(MSG* msg)
 	{
 		if (msg->message == UI_THREAD_CALLBACK)
 		{
-			callback_->UIThreadCallback(static_cast<int>(msg->wParam),
-				reinterpret_cast<void*>(msg->lParam));
+			callback_->UIThreadCallback(static_cast<int>(msg->wParam), reinterpret_cast<void*>(msg->lParam));
 			ret = true;
 		}
 	}
@@ -245,8 +244,7 @@ void MainWnd::StopRemoteRenderer()
 
 void MainWnd::QueueUIThreadCallback(int msg_id, void* data)
 {
-	::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK,
-		static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
 }
 
 void MainWnd::OnPaint()
@@ -348,7 +346,7 @@ void MainWnd::OnPaint()
 			::SelectObject(ps.hdc, old_font);
 		}
 	}
-	else if (local_renderer)
+	else if (local_renderer && false)
 	{
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 

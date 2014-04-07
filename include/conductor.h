@@ -87,7 +87,7 @@ public:
 
 	// easyrtc incoming from JS
 	void SetIceServers(std::string json);
-	void CreatOfferSDP();
+	void CreateOfferSDP();
 	void ProcessAnswer(std::string json);
 	void ProcessOffer(std::string);
 	void ProcessCandidate(std::string json);
@@ -177,9 +177,9 @@ protected:
 
 //	virtual void DisconnectFromServer();
 
-	virtual void ConnectToPeer(int peer_id);
+//	virtual void ConnectToPeer(int peer_id);
 
-	virtual void DisconnectFromCurrentPeer();
+//	virtual void DisconnectFromCurrentPeer();
 
 	virtual void UIThreadCallback(int msg_id, void* data);
 
@@ -200,6 +200,7 @@ protected:
 
 	std::deque<std::string*> pending_messages_;
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> > active_streams_;
+	std::string iceCanidatesFromSS_;		// signaling server
 	std::string server_;
 };
 

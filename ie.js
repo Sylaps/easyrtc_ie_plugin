@@ -1,5 +1,7 @@
 
-var socket = io.connect(':8080');
+var socket = io.connect('dev.easyrtc.com:80');
+//var socket = io.connect(':8080');
+//var socket = io.connect();
 
 var sdp = null;
 var activex = null;
@@ -61,99 +63,91 @@ var goocandidate = {
   "sdpMid": "audio"
 }
 
-//var fixsdp = 'c=IN IP4 172.16.40.108NEWCARa=rtcp:50592 IN IP4 172.16.40.108NEWCARa=candidate:1150697756 1 udp 2122129151 172.16.40.108 50592 typ host generation 0NEWCARa=candidate:1150697756 2 udp 2122129151 172.16.40.108 50592 typ host generation 0NEWCARa=candidate:169197036 1 tcp 1518149375 172.16.40.108 51722 typ host generation 0NEWCARa=candidate:169197036 2 tcp 1518149375 172.16.40.108 51722 typ host generation 0NEWCAR';
-
-/*
-function WebRTCAPI::EventToBrowser(json) {
-	asyncEvent(json);
-}
-*/
-
-
 function addEventHandler(id, handler) {
   try {
    var evalString = "function " + id + "::EventToBrowser (event) { handler(event); }"; // Eval bind double-colon function to call handler
    console.log(evalString);
    eval(evalString);
-  } catch (e) {
+  } 
+  catch (e) {
    console.log(e);
    throw new Error("Could not add custom event handler to "+ id);
   }
  }
 
-function asyncEvent(json) {
-	// if (json.sdp) { // type = offer
-	if (json.type === 'offer') {
-		//var IPpos = json.sdp.indexOf('c=IN IP4 0.0.0.0');
-		//if (IPpos > 0) {
-			//console.log('fix sdp...');
-			//json.sdp = json.sdp.replace('0.0.0.0', '172.16.40.108').replace('0.0.0.0', '172.16.40.108');
-		//}
-		// console.log('send easy an offer(sdp): ' + JSON.stringify(json.sdp));
-		offer2(json.sdp);
+var ss = 1;
+function asyncEvent(value) {
+
+	console.log(typeof value == 'string' ? 'str:' + value : 'obj:' + JSON.stringify(value));
+
+	var json = typeof value == 'string' ? JSON.parse(value) : value;
+
+	console.log('\n+++++ asyncEvent() ' + JSON.stringify(json));
+
+	if (json.type == 'offer') {
+		console.log('incoming event, async offer');
+		if (ss == 1)
+			offer2(json.sdp);
+		ss = 0;
 	}
 
-	if (json.type === 'answer') {
+	else if (json.type == 'answer') {
+		console.log('async answer');
 		answerdude(json.sdp);
 	}
 
 	else if (json.candidate) {
-		//
-		// from google:
-		// {"candidate":"a=candidate:1150697756 1 udp 2122129151 172.16.40.108 61853 typ host generation 0\r\n","sdpMLineIndex":0,"sdpMid":"audio"}
-		//
-		// from easyrtc:
-		// incoming easyrtcCmd:  {"senderEasyrtcid":"qUrto0iznJiABk0LIqaa","msgData":{"type":"candidate","label":0,"id":"audio","candidate":"a=candidate:1150697756 1 udp 2113937151 172.16.40.108 51104 typ host generation 0\r\n"},"easyrtcid":"NLQoUZNI8iL-fVMoIqab","msgType":"candidate","serverTime":1395698888439}
-		//
-		// console.log('got candidate from google' +  JSON.stringify(json));
+		console.log('async cand');
+		
 		easycandidate.senderEasyrtcid = myrtcid;
 		easycandidate.targetEasyrtcid = remotertcid; // offerjson.targetEasyrtcid;	why fix this now? gdh
-
-// which?
-		//easycandidate.msgData.candidate = json.candidate.replace('\r\n','');
 		easycandidate.msgData.candidate = json.candidate;
 
-		// id or label?
 		easycandidate.msgData.id = json.sdpMid;
 		easycandidate.msgData.label = json.sdpMLineIndex;
 
-//		console.log('**************************************************************************************************');
-//		console.log(JSON.stringify(easycandidate));
-//		console.log('**************************************************************************************************');
 		socket.emit('easyrtcCmd', easycandidate, candyCallback);
 	}
-// 	else
-// 		console.log('unexpected from native: ' + JSON.stringify(json));
+	else if (json.sdp) {
+		console.log('but Im I getting stp now?????????????????????');
+	}
+	else {
+		console.log('what comes next?');
+		console.log('|' + JSON.stringify(json) + '|');
+	}		
 }
 
 var authorizationCallback = function (json) { 
 
 	document.getElementById('divLog').innerHTML += 'authorizationCallback()<br>';
-// 	console.log('gotauth: ' + JSON.stringify(json)); 
+ 	console.log('gotauth: ' + JSON.stringify(json)); 
 	myrtcid = json.msgData.easyrtcid;
 	icy = json.msgData.iceConfig.iceServers;
 	var rtcids = Object.keys(json.msgData.roomData.default.clientList);
-// 	console.log('rtcids |' + rtcids + '|');
 
+	var n;
 	var htm = '';
 	for(var i = 0; i < rtcids.length; i++) {
-		var n = rtcids[i];
+		n = rtcids[i];
 		if (n !== myrtcid)
 			htm += '<button onclick="offer(\'' + n + '\')">' + n + '</button>';
 	}
 	if (htm !== '')
-		document.getElementById('divPeers').innerHTML = htm;
+		document.getElementById('divPeers').innerHTML = '222 ' + htm;
 	else
-		document.getElementById('divPeers').innerHTML += 'nobody else available'; //  at http://localhost:8080/demos/demo_audio_video_simple.html';
+		document.getElementById('divPeers').innerHTML += 'nobody else available';
+
+	console.log('ice: ' + JSON.stringify(json.msgData.iceConfig.iceServers));
+	activex.pushToNative('seticeservers', JSON.stringify(json.msgData.iceConfig.iceServers));
+	//activex.pushToNative('seticeservers', json.msgData.iceConfig.iceServers);
+};
 
 //	if (rtcids != null && rtcids.length > 0) {
 //		var client = json.msgData.roomData.default.clientList[rtcids[0]].easyrtcid;
 //		console.log('other rtcid: |' + client + '|');
 //		offerjson.targetEasyrtcid = client; 
-//		socket.emit('easyrtcCmd', offerjson, offerCallback);
+//		socket.emit('easyrtcCmd', offerjson, o fferCallback);
 //	}
-
-};
 
 function callmyotherhangup() {
 	hangupjson.targetEasyrtcid = remotertcid;
@@ -161,15 +155,16 @@ function callmyotherhangup() {
 }
 
 function offer2(sdp) {
-//	document.getElementById('divLog').innerHTML += 'offer(' + rtcid + ')<br>';
+//	document.getElementById('divLog').i nnerHTML += 'offer(' + rtcid + ')<br>';
 	offerjson.msgData.sdp = sdp;
 	offerjson.targetEasyrtcid = remotertcid;
-console.log('send offer to ' + remotertcid);
+console.log('offer2(), send offer to ' + remotertcid);
+console.log(sdp);
 	socket.emit('easyrtcCmd', offerjson, offerCallback);
 }
 
 function answerdude(sdp) {
-//	document.getElementById('divLog').innerHTML += 'offer(' + rtcid + ')<br>';
+//	document.getElementById('divLog').i nnerHTML += 'offer(' + rtcid + ')<br>';
 	answerjson.msgData.sdp = sdp;
 	answerjson.targetEasyrtcid = remotertcid;
  	console.log('hey, lets answer: ' + JSON.stringify(answerjson));
@@ -179,11 +174,12 @@ function answerdude(sdp) {
 function offer(rtcid) {
 	remotertcid = rtcid;
 	offerjson.targetEasyrtcid = rtcid; 
-// 	console.log('ask activex to make an sdp');
+
+console.log();
+console.log('offer(): ask activex to make an sdp');
 	activex.pushToNative('makeoffer', '');
 
-
-	// document.getElementById('divLog').innerHTML += 'offer(' + rtcid + ')<br>';
+	// document.getElementById('divLog').i nnerHTML += 'offer(' + rtcid + ')<br>';
 //	offerjson.targetEasyrtcid = rtcid; 
 //	socket.emit('easyrtcCmd', offerjson, offerCallback);
 }
@@ -239,15 +235,17 @@ function loaded() {
 
 function gotAnswer(json) {
 	document.getElementById('divLog').innerHTML += 'gotAnswer()<br>';
+console.log('got answer ' + JSON.stringify(json));
+
 	if (json.msgData.sdp) {
-		document.getElementById('divSDP').innerHTML = json.msgData.sdp;
+		document.getElementById('divSDP').innerHTML += '111 ' + json.msgData.sdp;
 		sdp = json.msgData.sdp;
 		//console.log('____ answer sdp _______________________________________');
 		//console.log(sdp);
 		//console.log('_______________________________________________________');
 		var sdp = json.msgData.sdp;
-	//	sdp = sdp.replace('0.0.0.0', '172.16.40.108');
-	//	sdp = sdp.replace('0.0.0.0', '172.16.40.108');
+	//	sdp = sdp.r eplace('0.0.0.0', '172.16.40.108');
+	//	sdp = sdp.r eplace('0.0.0.0', '172.16.40.108');
 		//console.log('push answer: ' + JSON.stringify(json));
 		activex.pushToNative('handleanswer', sdp);
 	}
@@ -258,41 +256,37 @@ function gotOffer(json) {
 
 	remotertcid = json.senderEasyrtcid;
 	console.log();
-	console.log();
 	console.log('incoming offer from ' + remotertcid);
-	console.log();
 
 	var sdp = JSON.stringify(json.msgData.sdp);
-	if (sdp.indexOf('"') == 0) {
-		sdp = sdp.replace('"', '').replace('"', '');		// why are there double quotes?
-	}
-
 	var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
 	sdp = sdp.replace(/\\r\\n/g, actualnewlines);
+	sdp = sdp.replace(/\"/g, '');
+	json.msgData.sdp = sdp;	
 
-	// test - send the whole thing
-json.msgData.sdp = sdp;	
+//var fucker = JSON.stringify(json.msgData).replace(/\\r\\n/g, actualnewlines);
+//activex.pushToNative('handleoffer', fucker); // JSON.stringify(json.msgData));
 
 activex.pushToNative('handleoffer', JSON.stringify(json.msgData));
-// activex.pushToNative('gotoffer', sdp);
+
 }
 
 function gotCandidate(json) {
 
-//	document.getElementById('divLog').innerHTML += 'gotCandidate(' + json.msgData.candidate + ')<br>';
+//	document.getElementById('divLog').i nnerHTML += 'gotCandidate(' + json.msgData.candidate + ')<br>';
 	console.log('candidate from easy: ' + JSON.stringify(json));
 
 	goocandidate.candidate = json.msgData.candidate;
 	goocandidate.sdpMid = json.msgData.id;
 	goocandidate.sdpMLineIndex = json.msgData.label;
 
-//	console.log('send to google c++: ' + JSON.stringify(goocandidate));
+console.log('send to google c++: ' + JSON.stringify(goocandidate));
 	activex.pushToNative('handlecandidate', JSON.stringify(goocandidate));
 }
 
 /*
 function callActiveX() {
-	document.getElementById('divLog').innerHTML += 'callActiveX()<br>';
+	document.getElementById('divLog').i nnerHTML += 'callActiveX()<br>';
 	console.log('hello activex');
 	if (activex != null)
 		activex.SetRemoteSDP(sdp);

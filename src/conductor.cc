@@ -28,6 +28,10 @@
 #include "stdafx.h"
 #include "conductor.h"
 #include <utility>
+#include <algorithm> 
+//#include <functional> 
+//#include <locale>
+//#include <cctype>
 #include "talk/app/webrtc/videosourceinterface.h"
 #include "talk/app/webrtc/mediaconstraintsinterface.h"
 #include "talk/base/common.h"
@@ -148,25 +152,28 @@ void Conductor::ProcessAnswer(std::string remotesdp)		// gdh
 void Conductor::getlocalvideo()		// gdh
 {
 	InitializePeerConnection();
-
-//	peer_id_ = 4;
-//	peer_connection_->CreateOffer(this, NULL);
 }
 
 void Conductor::SetIceServers(std::string icejson)		// gdh
 {
+	iceCanidatesFromSS_ = icejson;
 }
 
-void Conductor::CreatOfferSDP()		// gdh
+void Conductor::CreateOfferSDP()		// gdh
 {
-//	peer_id_ = 4;				// TODO remove peer_id_
 	LOG(INFO) << "createoffer ***********************";
 
-	// both of these next 2 lines seem to work the same way
 	if (peer_connection_ == NULL)
 		InitializePeerConnection();
 
 	peer_connection_->CreateOffer(this, NULL);
+}
+
+std::string trim(std::string str)
+{
+	str.erase(std::remove(str.begin(), str.end(), '\"'), str.end());
+	str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+	return str;
 }
 
 bool Conductor::InitializePeerConnection()
@@ -185,19 +192,38 @@ bool Conductor::InitializePeerConnection()
 	}
 
 	webrtc::PeerConnectionInterface::IceServers servers;
-	webrtc::PeerConnectionInterface::IceServer server;
 
+	Json::Reader reader;
+	Json::Value jice;
+	if (iceCanidatesFromSS_.length() > 0 && !reader.parse(iceCanidatesFromSS_, jice))
+	{
+		LOG(WARNING) << "Received unknown message. " << iceCanidatesFromSS_;
+		return false;
+	}
 
+	LOG(INFO) << "incoming ice setup:";
+	for (unsigned int i = 0; i < jice.size(); i++)
+	{
+		Json::Value jobj = jice[i];
 
+		webrtc::PeerConnectionInterface::IceServer server; // = new webrtc::PeerConnectionInterface::IceServer();
+		if (!jobj.isMember("url"))
+			continue;
 
-	// TODO gdh set the ice severs now
+		server.uri = trim(jobj["url"].toStyledString());
+		if (jobj.isMember("username"))
+			server.username = trim(jobj["username"].toStyledString());
+		if (jobj.isMember("credential"))
+			server.password = trim(jobj["credential"].toStyledString());
 
+		LOG(INFO) << "c++ " << server.uri << "|" << server.username << "|" << server.password;
+		servers.push_back(server);
 
+		server.username = "";
+		server.password = "";
+	}
 
-	server.uri = GetPeerConnectionString();
-	servers.push_back(server);
-
-	peer_connection_ = peer_connection_factory_->CreatePeerConnection(servers, this, NULL, this);	// not really a peer connection
+	peer_connection_ = peer_connection_factory_->CreatePeerConnection(servers, this, NULL, this); // NULL: media constraints
 
 	if (!peer_connection_.get())
 	{
@@ -378,6 +404,7 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message)
 		int sdp_mlineindex = 0;
 		std::string sdp;
 
+		// debug log if these are all there
 		bool x = GetStringFromJsonObject(jmessage, kCandidateSdpMidName, &sdp_mid);
 		bool y = GetIntFromJsonObject(jmessage, kCandidateSdpMlineIndexName, &sdp_mlineindex);
 		bool z = GetStringFromJsonObject(jmessage, kCandidateSdpName, &sdp);
@@ -435,6 +462,7 @@ void Conductor::StartLogin(const std::string& server, int port)
 //		peerConnectionClient_->SignOut();
 //}
 
+/*
 void Conductor::ConnectToPeer(int peer_id)
 {
 //	ASSERT(peer_id_ == -1);
@@ -457,6 +485,7 @@ void Conductor::ConnectToPeer(int peer_id)
 		mainWindow_->MessageBox("Error", "Failed to initialize PeerConnection", true);
 	}
 }
+*/
 
 cricket::VideoCapturer* Conductor::OpenVideoCaptureDevice()
 {
@@ -516,6 +545,7 @@ void Conductor::AddStreams()
 	mainWindow_->SwitchToStreamingUI();
 }
 
+/*
 void Conductor::DisconnectFromCurrentPeer()
 {
 	LOG(INFO) << __FUNCTION__;
@@ -528,6 +558,7 @@ void Conductor::DisconnectFromCurrentPeer()
 	if (mainWindow_->IsWindow())
 		mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
 }
+*/
 
 void Conductor::UIThreadCallback(int msg_id, void* data)
 {
@@ -560,6 +591,9 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 	case SEND_MESSAGE_TO_BROWSER:
 		msg = reinterpret_cast<std::string*>(data);			// TODO you gotta delete this msg
 		javascriptCallback_->SendToBrowser(*msg);
+		LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
+		delete msg;
+		msg = NULL;
 		break;
 
 //	case SEND_MESSAGE_TO_DUDE:
@@ -653,8 +687,8 @@ void Conductor::OnFailure(const std::string& error)
 void Conductor::PostToBrowser(const std::string& json_object)
 {
 	std::string* json = new std::string(json_object);
-	LOG(INFO) << "gdh says: SendMessage(): " + *json;
+	LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
 
-	std::string* msg = new std::string(json_object);
-	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, msg);
+//	std::string* msg = new std::string(json_object);
+	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, json);
 }

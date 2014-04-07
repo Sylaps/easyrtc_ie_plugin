@@ -27,6 +27,7 @@ public:
 				avarParams[0] = json;
 				avarParams[0].vt = VT_BSTR;
 				DISPPARAMS params = { avarParams, NULL, 1, 0 };
+LOG(INFO) << "++++ Fire_EventToBrowser " << cConnections << " " << json;
 				hr = pConnection->Invoke(1, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, NULL, NULL, NULL);
 			}
 		}

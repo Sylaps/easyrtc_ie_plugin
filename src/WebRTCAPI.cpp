@@ -43,7 +43,7 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	Json::StyledWriter writer;
 	Json::Value jsonobj(json);
 
-	LOG(INFO) << gettime() + " push to native ***************************** " << json;
+	LOG(INFO) << "\n" << gettime() + " push to native +++++++++++++++++++\n" << json;
 
 	if (cmd == "handleoffer")
 		conductor_->ProcessOffer(json);
@@ -52,7 +52,7 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	else if (cmd == "hangup")
 		conductor_->Hangup();
 	else if (cmd == "makeoffer")
-		conductor_->CreatOfferSDP();
+		conductor_->CreateOfferSDP();
 	else if (cmd == "handlecandidate")
 		conductor_->ProcessCandidate(json);
 	else if (cmd == "debug")
