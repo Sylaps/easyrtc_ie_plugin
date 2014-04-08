@@ -121,23 +121,23 @@ void Conductor::ProcessCandidate(std::string json)
 
 void Conductor::ProcessOffer(std::string remotesdp)	
 {
-	OnMessageFromPeer(0, remotesdp);		// lets try the whole json...!
+	OnMessageFromPeer(0, remotesdp);	
 }
 
-void Conductor::Hangup()		// gdh
+void Conductor::Hangup()	
 {
 	if (peer_connection_.get())
 	{
-		peerConnectionClient_->SendHangUp(0); //  peer_id_);
+		peerConnectionClient_->SendHangUp(0); 
 
-		peerConnectionClient_->SignOut();
-		peerConnectionClient_->disconnect_all();
+		peerConnectionClient_->SignOut();				// need this? not sure
+		peerConnectionClient_->disconnect_all();		// need this? not sure
 
 		DeletePeerConnection();
 	}
 }
 
-void Conductor::ProcessAnswer(std::string remotesdp)		// gdh
+void Conductor::ProcessAnswer(std::string remotesdp)
 {
 	std::string type = "answer";
 	std::string json_object;
@@ -342,18 +342,13 @@ void Conductor::OnPeerDisconnected(int id)
 	}
 }
 
-void Conductor::OnMessageFromPeer(int peer_id, const std::string& message)
+void Conductor::OnMessageFromPeer(int notused, const std::string& message)
 {
 	LOG(INFO) << "OnMessageFromPeer: " << message;
-
-//	ASSERT(peer_id_ == peer_id || peer_id_ == -1);
-//	ASSERT(!message.empty());
+	ASSERT(!message.empty());
 
 	if (!peer_connection_.get())
 	{
-//		ASSERT(peer_id_ == -1);
-//		peer_id_ = peer_id;
-
 		if (!InitializePeerConnection())
 		{
 			LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
@@ -361,12 +356,6 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message)
 			return;
 		}
 	}
-//	else if (peer_id != peer_id_)
-//	{
-//		ASSERT(peer_id_ != -1);
-//		LOG(WARNING) << "Received a message from unknown peer while already in a conversation with a different peer.";
-//		return;
-//	}
 
 	Json::Reader reader;
 	Json::Value jmessage;
