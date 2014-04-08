@@ -45,7 +45,9 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 
 	LOG(INFO) << "\n" << gettime() + " push to native +++++++++++++++++++\n" << json;
 
-	if (cmd == "handleoffer")
+	if (cmd == "seticeservers")
+		conductor_->SetIceServers(json);
+	else if (cmd == "handleoffer")
 		conductor_->ProcessOffer(json);
 	else if (cmd == "handleanswer")
 		conductor_->ProcessAnswer(json);
@@ -61,8 +63,6 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 		::DebugBreak();
 	#endif
 	}
-	else if (cmd == "seticeservers")
-		conductor_->SetIceServers(json);
 	return S_OK;
 }
 

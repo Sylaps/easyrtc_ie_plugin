@@ -589,17 +589,12 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 		break;
 
 	case SEND_MESSAGE_TO_BROWSER:
-		msg = reinterpret_cast<std::string*>(data);			// TODO you gotta delete this msg
+		msg = reinterpret_cast<std::string*>(data);
 		javascriptCallback_->SendToBrowser(*msg);
 		LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
 		delete msg;
 		msg = NULL;
 		break;
-
-//	case SEND_MESSAGE_TO_DUDE:
-//		LOG(INFO) << "SEND_MESSAGE_TO_dude";
-//		peer_connection_->CreateOffer(this, NULL);
-//		break;
 
 	case SEND_MESSAGE_TO_PEER:
 		LOG(INFO) << "SEND_MESSAGE_TO_PEER";
@@ -617,17 +612,13 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 			msg = pending_messages_.front();
 			pending_messages_.pop_front();
 
-			// if (!peerConnectionClient_->SendToPeer(peer_id_, *msg) && peer_id_ != -1)
-			if (!peerConnectionClient_->SendToPeer(0, *msg)) //  && peer_id_ != -1)
+			if (!peerConnectionClient_->SendToPeer(0, *msg))
 			{
 				LOG(LS_ERROR) << "SendToPeer failed";
 				//DisconnectFromServer();
 			}
 			delete msg;
 		}
-
-//		if (!peer_connection_.get())
-//			peer_id_ = -1;
 
 		break;
 
@@ -665,7 +656,6 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 {
 	LOG(INFO) << "\ngdh says: conductor - some kind of success";
-
 	peer_connection_->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desc);
 	Json::StyledWriter writer;
 	Json::Value jmessage;
@@ -689,6 +679,5 @@ void Conductor::PostToBrowser(const std::string& json_object)
 	std::string* json = new std::string(json_object);
 	LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
 
-//	std::string* msg = new std::string(json_object);
 	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, json);
 }
