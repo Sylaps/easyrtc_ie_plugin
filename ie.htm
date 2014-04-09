@@ -11,11 +11,12 @@
 
 	<br>
 	<button onclick="run()">run</button>
+	<button onclick="authenticate()">authenticate</button>
 	<button onclick="hangup()">hangup</button>
 	<button onclick="debug()">debug</button>
 	<br>
     
-    <object id="WebRTCAPI"
+    <object id="videoElement"
             classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
             height=400
             width=800></object>
@@ -31,12 +32,16 @@
 
 	var myrtcid
 	,   rtcPlugin
-	, 	iceServers;
+	, 	iceServers
+	, 	socket
+	,   element
+	,   setupCallbacks;
 
 	window.onload = function () {
 
-		var element = document.getElementById("WebRTCAPI")
-		,   socket = io.connect('172.16.40.108:8080');
+		element = document.getElementById("videoElement");
+		
+		socket = io.connect('172.16.40.108:8080');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -46,15 +51,13 @@
 			} 
 		};
 
-		socket.on('connect', function () {
 
+		setupCallbacks = function () {
 			socket.emit('easyrtcAuth', auth, function (message) {
-				
-			    rtcPlugin = new RTCPlugin(element);
 
 			    rtcPlugin.onicecandidate = function (candidate) {
 			    	
-			    	dlog("native onicecandidate");
+			    	dlog("native --> onicecandidate");
 
 			    	socket.emit ("easyrtcCmd", {
 					  msgType: "candidate",
@@ -62,11 +65,11 @@
 					  targetEasyrtcid: rtcPlugin.remoteId,
 					  msgData: {
 					    type: "candidate",
-					    label: json.sdpMLineIndex,
-					    id: json.sdpMid,
-					    candidate: json.candidate
+					    label: candidate.sdpMLineIndex,
+					    id: candidate.sdpMid,
+					    candidate: candidate.candidate
 					  }
-					});
+					}, function (){ } );
 			    };
 
 				/* Handle displaying the button to connect to other peers... */
@@ -78,24 +81,43 @@
 
 				socket.on('easyrtcCmd', function (json) {
 
-					if (json.msgData && json.msgData.type)	{						// don't need, could just check for sdp...
+					if (json.msgData && json.msgData.type)	{		
+
+						// cleanup sdp
+						if (json.msgData.sdp) {
+							var sdp = json.msgData.sdp;
+							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
+							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
+							sdp = sdp.replace(/\"/g, '');
+
+							json.msgData.sdp = sdp;
+							dlog("----------");
+							dlog(json.msgData.sdp);
+							dlog("----------");
+						}	
+
+
+						// don't need, could just check for sdp...
 					
 						switch(json.msgData.type) {
 					
 						case 'answer':
 						
 							dlog('got answer')
-							rtcPlugin.handleAnswer(json);
+							rtcPlugin.handleAnswer(json.msgData.sdp);
 							break;
 						
 						case 'candidate': 
 								
-							dlog('socket candidate');
-							rtcPlugin.handleCandidate({
+							dlog('socket --> candidate');
+
+							var cand = {
 								candidate : json.msgData.candidate, 
 								sdpMid : json.msgData.id, 
 								sdpMLineIndex : json.msgData.label
-							});
+							};
+							
+							rtcPlugin.handleCandidate(cand);
 
 							break;
 						case 'roomData': 
@@ -105,16 +127,6 @@
 						
 						case 'offer': 
 							dlog('got offer');
-							dlog(JSON.stringify(json));
-
-							var sdp = json.msgData.sdp;
-							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
-							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
-							sdp = sdp.replace(/\"/g, '');
-
-							json.msgData.sdp = sdp;	
-
-							dlog(json.msgData);
 
 							rtcPlugin.handleOffer(json.senderEasyrtcid, json.msgData, function(sdp){
 								dlog('returning answer');
@@ -140,7 +152,8 @@
 				});
 
 			});
-		});
+		};
+
 	};
 
 	function addPeerButtons(message){
@@ -159,6 +172,10 @@
 		else{
 			document.getElementById('divPeers').innerHTML += 'nobody else available'; //  at http://localhost:8080/demos/demo_audio_video_simple.html';
 		}
+	}
+
+	function authenticate() {
+		setupCallbacks();
 	}
 
 	function hangup() {
@@ -189,6 +206,7 @@
 	}
 
 	function run() {
+		rtcPlugin = new RTCPlugin(element);
 		rtcPlugin.run();
 	}
 

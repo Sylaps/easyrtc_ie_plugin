@@ -2,9 +2,6 @@
 
 	window.callback_registry = {};
 
-	/*utils*/
-	function assert(condition, failureMessage) { if (!condition) { throw new Error("Assert failed: " + message); } }
-
 	/*
 	*	addEventHandler(id, functionName, handler)
 	*	Use eval for the power of good. (Bind event handler to native C++ event)
@@ -42,7 +39,9 @@
 		this.isRunning = false;
 	}
 
-	RTCPlugin.prototype.onicecandidate = function (json){ console.log("onicecandidate"); };
+	RTCPlugin.prototype.supportedBrowser = function () {
+        return ActiveXObject === undefined;
+	};
 
 	/*
 	* RTCPlugin interface implementation
@@ -66,12 +65,12 @@
 
 	};
 
-	RTCPlugin.prototype.handleAnswer = function (answer) {
-		nativeCall(this, 'handleanswer', JSON.stringify(answer));
+	RTCPlugin.prototype.handleAnswer = function (answerSdp) {
+		nativeCall(this, 'handleanswer', answerSdp);
 	};
 
 	RTCPlugin.prototype.handleCandidate = function (candidate) {
-		nativeCall(this, "handlecandidate", JSON.stringify(candidate));
+		nativeCall(this, "handlecandidate", candidate);
 	};
 
 	RTCPlugin.prototype.close = function () {
@@ -96,21 +95,13 @@
 		var json;
 		var obj;
 		if (typeof data == 'string'){
-			dlog("(.)(.) == dont treat me like an object!");
-			json = json[0];
 			json = JSON.parse(data);
-			dlog(json);
 		} else {
-			dlog("(.)(.)object");
-			json = data;
-			for (var i in json){
-				dlog(i + " : " + json[i]);
-			}
-			obj = json[0];
-			dlog(">>>> obj :" + obj )
-			json = JSON.parse(obj);
+			json = JSON.parse(data[0]);
 		}
 
+		dlog("Candidate JSON ---->");
+		dlog(JSON.stringify(json));
 	
 		dlog(this.onCreateOffer !== undefined);
 		dlog(this.onHandleOffer !== undefined);
