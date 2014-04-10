@@ -193,14 +193,6 @@ public:
 	};
 
 protected:
-//	enum ChildWindowID
-//	{
-//		EDIT_ID = 1,
-//		BUTTON_ID,
-//		LABEL1_ID,
-//		LABEL2_ID,
-//		LISTBOX_ID,
-//	};
 
 	void OnDestroyed();
 
@@ -226,10 +218,10 @@ private:
 	HWND wnd_;
 	DWORD ui_thread_id_;
 
-	bool firstPaint = true;
-	int thumb_width = 100;
-	int thumb_height = 75;
-	RECT logical_rect;
+//	bool firstPaint = true;
+//	int thumb_width = 100;
+//	int thumb_height = 75;
+//	RECT logical_rect;
 
 	bool destroyed_;
 	void* nested_msg_;

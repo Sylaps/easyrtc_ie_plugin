@@ -274,14 +274,6 @@ void MainWnd::OnPaint()
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
 			// Set the map mode so that the ratio will be maintained for us.
-			HDC all_dc[] = { ps.hdc, dc_mem };
-			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i)
-			{
-				SetMapMode(all_dc[i], MM_ISOTROPIC);
-				SetWindowExtEx(all_dc[i], rvwidth, rvheight, NULL);
-				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
-			}
-
 			HBITMAP bmp_mem = ::CreateCompatibleBitmap(ps.hdc, rc.right, rc.bottom);
 			HGDIOBJ bmp_old = ::SelectObject(dc_mem, bmp_mem);
 
@@ -289,20 +281,20 @@ void MainWnd::OnPaint()
 			DPtoLP(ps.hdc, &logical_area, 1);
 			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
 
-			if (firstPaint)
-			{
-				float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
-				LOG(INFO) << "Incoming aspect " << aspect;
+			int thumb_width = 100;
+			int thumb_height = 75;
 
-				logical_rect = { 0, 0, logical_area.x, logical_area.y };
-				if ((rc.right - rc.left) > 399) 
-				{
-					thumb_width = 200;
-					thumb_height = 150;
-				}
-				firstPaint = false;
+			// float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
+
+			HDC all_dc[] = { ps.hdc, dc_mem };
+			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i)
+			{
+				SetMapMode(all_dc[i], MM_ISOTROPIC);
+				SetWindowExtEx(all_dc[i], logical_area.x, logical_area.y, NULL);
+				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
 			}
 
+			RECT logical_rect = { 0, 0, logical_area.x, logical_area.y };
 			::FillRect(dc_mem, &logical_rect, brush);
 			::DeleteObject(brush);
 
@@ -337,6 +329,12 @@ void MainWnd::OnPaint()
 				const uint8* lvimage = local_renderer->image();
 				// int thumb_width = bmi.bmiHeader.biWidth / 2;
 				// int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
+
+				if ((rc.right - rc.left) > 399) 
+				{
+					thumb_width = 140; //  160; 
+					thumb_height = 105; //  120;
+				}
 
 				StretchDIBits(dc_mem,
 					logical_area.x - thumb_width - 3,
