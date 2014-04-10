@@ -263,12 +263,12 @@ void MainWnd::OnPaint()
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 		AutoLock<VideoRenderer> remote_lock(remote_renderer);
 
-		const BITMAPINFO& bmi = remote_renderer->bmi();
-		int height = abs(bmi.bmiHeader.biHeight);
-		int width = bmi.bmiHeader.biWidth;
+		const BITMAPINFO& rvbmi = remote_renderer->bmi();
+		int rvheight = abs(rvbmi.bmiHeader.biHeight);		// Remove Vide
+		int rvwidth = rvbmi.bmiHeader.biWidth;
 
-		const uint8* image = remote_renderer->image();
-		if (image != NULL)
+		const uint8* rvimage = remote_renderer->image();
+		if (rvimage != NULL)
 		{
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
@@ -278,7 +278,7 @@ void MainWnd::OnPaint()
 			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i)
 			{
 				SetMapMode(all_dc[i], MM_ISOTROPIC);
-				SetWindowExtEx(all_dc[i], width, height, NULL);
+				SetWindowExtEx(all_dc[i], rvwidth, rvheight, NULL);
 				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
 			}
 
@@ -287,31 +287,63 @@ void MainWnd::OnPaint()
 
 			POINT logical_area = { rc.right, rc.bottom };
 			DPtoLP(ps.hdc, &logical_area, 1);
-
 			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
-			RECT logical_rect = { 0, 0, logical_area.x, logical_area.y };
+
+			if (firstPaint)
+			{
+				float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
+				LOG(INFO) << "Incoming aspect " << aspect;
+
+				logical_rect = { 0, 0, logical_area.x, logical_area.y };
+				if ((rc.right - rc.left) > 399) 
+				{
+					thumb_width = 200;
+					thumb_height = 150;
+				}
+				firstPaint = false;
+			}
+
 			::FillRect(dc_mem, &logical_rect, brush);
 			::DeleteObject(brush);
 
-			int x = (logical_area.x / 2) - (width / 2);
+			int x = (logical_area.x / 2) - (rvwidth / 2);		// what does this do besides nothing?
+			int y = (logical_area.y / 2) - (rvheight / 2);
 			x = 0;
-			int y = (logical_area.y / 2) - (height / 2);
+			y = 0;
 
-			StretchDIBits(dc_mem, x, y, width, height,
-				0, 0, width, height, image, &bmi, DIB_RGB_COLORS, SRCCOPY);
+/*			int StretchDIBits(
+				_In_  HDC hdc,
+				_In_  int XDest,				0
+				_In_  int YDest,				0
+				_In_  int nDestWidth,			remote vid width
+				_In_  int nDestHeight,			remote vid height
+				_In_  int XSrc,					0
+				_In_  int YSrc,					0
+				_In_  int nSrcWidth,			remote vid width
+				_In_  int nSrcHeight,			remote vid height
+				_In_  const VOID *lpBits,		actual bitmap
+				_In_  const BITMAPINFO *lpBitsInfo,
+				_In_  UINT iUsage,				DIB_RGB_COLORS
+				_In_  DWORD dwRop				SRCCOPY
+				);
+*/
 
-			if ((rc.right - rc.left) > 200 && (rc.bottom - rc.top) > 200)
+			StretchDIBits(dc_mem, x, y, rvwidth, rvheight,
+				0, 0, rvwidth, rvheight, rvimage, &rvbmi, DIB_RGB_COLORS, SRCCOPY);
+
+			if ((rc.right - rc.left) > 300) //  && (rc.bottom - rc.top) > 200)
 			{
-				const BITMAPINFO& bmi = local_renderer->bmi();
-				image = local_renderer->image();
-				int thumb_width = bmi.bmiHeader.biWidth / 2;
-				int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
+				const BITMAPINFO& lvbmi = local_renderer->bmi();
+				const uint8* lvimage = local_renderer->image();
+				// int thumb_width = bmi.bmiHeader.biWidth / 2;
+				// int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
+
 				StretchDIBits(dc_mem,
-					logical_area.x - thumb_width, //  -10,
-					logical_area.y - thumb_height, //  - 10,
+					logical_area.x - thumb_width - 3,
+					logical_area.y - thumb_height - 3,
 					thumb_width, thumb_height,
-					0, 0, bmi.bmiHeader.biWidth, -bmi.bmiHeader.biHeight,
-					image, &bmi, DIB_RGB_COLORS, SRCCOPY);
+					0, 0, lvbmi.bmiHeader.biWidth, abs(lvbmi.bmiHeader.biHeight),
+					lvimage, &lvbmi, DIB_RGB_COLORS, SRCCOPY);
 			}
 
 			BitBlt(ps.hdc, 0, 0, logical_area.x, logical_area.y, dc_mem, 0, 0, SRCCOPY);

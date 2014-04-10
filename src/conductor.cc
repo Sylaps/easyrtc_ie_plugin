@@ -87,9 +87,7 @@ protected:
 };
 
 Conductor::Conductor(PeerConnectionClient* client, MainWindow* main_wnd)
-: 
-// peer_id_(-1), 
-peerConnectionClient_(client), mainWindow_(main_wnd)
+	: peerConnectionClient_(client), mainWindow_(main_wnd)
 {
 	peerConnectionClient_->RegisterObserver(this);
 	main_wnd->RegisterObserver(this);
@@ -100,7 +98,7 @@ Conductor::~Conductor()
 {
 	if (peer_connection_ != NULL)
 		if (peer_connection_.get() != NULL)
-			LOG(LS_ERROR) << "\n *********************** leak, clean up peer_connection somehow...";
+			LOG(LS_ERROR) << "leak, clean up peer_connection...";
 }
 
 bool Conductor::connection_active() const
@@ -149,17 +147,19 @@ void Conductor::ProcessAnswer(std::string remotesdp)
 	peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
 }
 
-void Conductor::getlocalvideo()		// gdh
+/*
+void Conductor::getlocalvideo()	
 {
 	InitializePeerConnection();
 }
+*/
 
-void Conductor::SetIceServers(std::string icejson)		// gdh
+void Conductor::SetIceServers(std::string icejson)
 {
 	iceCanidatesFromSS_ = icejson;
 }
 
-void Conductor::CreateOfferSDP()		// gdh
+void Conductor::CreateOfferSDP()	
 {
 	LOG(INFO) << "createoffer ***********************";
 

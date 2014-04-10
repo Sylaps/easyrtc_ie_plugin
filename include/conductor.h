@@ -94,7 +94,7 @@ public:
 	void Hangup();
 
 	// we might want to just display local until a call is made
-	void getlocalvideo();	// just call InitializePeerConnection
+//	void getlocalvideo();	// just call InitializePeerConnection
 
 	Constraints mandatory_;
 	Constraints optional_;

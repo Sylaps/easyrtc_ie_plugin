@@ -118,11 +118,6 @@ public:
 	virtual void SwitchToStreamingUI();
 	virtual void MessageBox(const char* caption, const char* text, bool is_error);
 
-//	virtual UI current_ui()
-//	{
-//		return ui_;
-//	}
-
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
 	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video);
@@ -227,16 +222,14 @@ protected:
 private:
 	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
 	talk_base::scoped_ptr<VideoRenderer> remote_renderer_;
-//	UI ui_;
+
 	HWND wnd_;
 	DWORD ui_thread_id_;
 
-//	HWND edit1_;
-//	HWND edit2_;
-//	HWND label1_;
-//	HWND label2_;
-//	HWND button_;
-//	HWND listbox_;
+	bool firstPaint = true;
+	int thumb_width = 100;
+	int thumb_height = 75;
+	RECT logical_rect;
 
 	bool destroyed_;
 	void* nested_msg_;
