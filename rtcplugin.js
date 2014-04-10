@@ -101,6 +101,14 @@
 	*/
 
 	/*
+	* handleIceServers(sdp)
+	* - asks native code to note the ice servers provided by the signalling server
+	*/
+	RTCPlugin.prototype.handleIceServers = function (iceServers) {
+		nativeCall(this, 'seticeservers', iceServers);
+	};
+
+	/*
 	* createOffer(remoteId, callback)
 	* - asks native code to create an offer
 	* - asynchronous - value returned in arg of callback(arg)

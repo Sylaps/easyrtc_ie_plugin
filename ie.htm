@@ -18,8 +18,7 @@
     
     <object id="videoElement"
             classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=400
-            width=800></object>
+            height=300 width=400></object>
     
 	<div id='divMe'></div>
 	<div id='divPeers'> </div>
@@ -42,6 +41,7 @@
 		element = document.getElementById("videoElement");
 		
 		socket = io.connect('dev.easyrtc.com:80');
+		// socket = io.connect('172.16.40.108:8080');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -80,6 +80,7 @@
 				addPeerButtons(message);
 				
 				iceServers = message.msgData.iceConfig.iceServers;
+				rtcPlugin.handleIceServers(message.msgData.iceConfig.iceServers);
 
 				socket.on('easyrtcCmd', function (json) {
 
@@ -98,9 +99,7 @@
 							dlog("----------");
 						}	
 
-
 						// don't need, could just check for sdp...
-					
 						switch(json.msgData.type) {
 					
 						case 'answer':
