@@ -41,7 +41,7 @@
 
 		element = document.getElementById("videoElement");
 		
-		socket = io.connect('172.16.40.108:8080');
+		socket = io.connect('dev.easyrtc.com:80');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -69,7 +69,9 @@
 					    id: candidate.sdpMid,
 					    candidate: candidate.candidate
 					  }
-					}, function (){ } );
+					}, function (){
+						// there must be a callback for this emit to work.
+					});
 			    };
 
 				/* Handle displaying the button to connect to other peers... */
