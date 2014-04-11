@@ -156,7 +156,7 @@ void Conductor::getlocalvideo()
 
 void Conductor::SetIceServers(std::string icejson)
 {
-	iceCanidatesFromSS_ = icejson;
+	iceCandidatesFromSS_ = icejson;
 }
 
 void Conductor::CreateOfferSDP()	
@@ -195,9 +195,9 @@ bool Conductor::InitializePeerConnection()
 
 	Json::Reader reader;
 	Json::Value jice;
-	if (iceCanidatesFromSS_.length() > 0 && !reader.parse(iceCanidatesFromSS_, jice))
+	if (iceCandidatesFromSS_.length() > 0 && !reader.parse(iceCandidatesFromSS_, jice))
 	{
-		LOG(WARNING) << "Received unknown message. " << iceCanidatesFromSS_;
+		LOG(WARNING) << "Received unknown message. " << iceCandidatesFromSS_;
 		return false;
 	}
 
@@ -222,6 +222,10 @@ bool Conductor::InitializePeerConnection()
 		server.username = "";
 		server.password = "";
 	}
+
+//	webrtc::PeerConnectionInterface::IceServer server;
+//	server.uri = "stun:stun.l.google.com:19302";
+//	servers.push_back(server);
 
 	peer_connection_ = peer_connection_factory_->CreatePeerConnection(servers, this, NULL, this); // NULL: media constraints
 
@@ -397,7 +401,7 @@ void Conductor::OnMessageFromPeer(int notused, const std::string& message)
 		bool x = GetStringFromJsonObject(jmessage, kCandidateSdpMidName, &sdp_mid);
 		bool y = GetIntFromJsonObject(jmessage, kCandidateSdpMlineIndexName, &sdp_mlineindex);
 		bool z = GetStringFromJsonObject(jmessage, kCandidateSdpName, &sdp);
-		LOG(INFO) << x << y << z;
+		LOG(INFO) << "OnMessageFromPeer() " << x << y << z;
 
 		if (!GetStringFromJsonObject(jmessage, kCandidateSdpMidName, &sdp_mid) ||
 			!GetIntFromJsonObject(jmessage, kCandidateSdpMlineIndexName, &sdp_mlineindex) || 

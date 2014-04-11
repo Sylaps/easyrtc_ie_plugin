@@ -200,7 +200,7 @@ protected:
 
 	std::deque<std::string*> pending_messages_;
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> > active_streams_;
-	std::string iceCanidatesFromSS_;		// signaling server
+	std::string iceCandidatesFromSS_;		// signaling server
 	std::string server_;
 };
 

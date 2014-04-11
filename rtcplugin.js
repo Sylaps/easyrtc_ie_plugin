@@ -27,7 +27,6 @@
 			json = JSON.parse(data[0]);
 		}
 
-
 		if (json.type == 'offer' && this.onCreateOffer) {
 			this.onCreateOffer(json.sdp);
 		
@@ -39,6 +38,8 @@
 		} else if(json.candidate && this.onicecandidate) {
 			this.onicecandidate(json);
 		} 
+		else
+			alert('hello ' + JSON.stringify(json));
 	}
 
 	/*

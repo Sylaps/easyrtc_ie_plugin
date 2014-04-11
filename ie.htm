@@ -18,7 +18,7 @@
     
     <object id="videoElement"
             classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=300 width=400></object>
+            height=400 width=0></object>
     
 	<div id='divMe'></div>
 	<div id='divPeers'> </div>
@@ -39,7 +39,7 @@
 	window.onload = function () {
 
 		element = document.getElementById("videoElement");
-		
+
 		socket = io.connect('dev.easyrtc.com:80');
 		// socket = io.connect('172.16.40.108:8080');
 
@@ -80,12 +80,15 @@
 				addPeerButtons(message);
 				
 				iceServers = message.msgData.iceConfig.iceServers;
+//dlog('setup ice servers');
+//dlog(message.msgData.iceConfig.iceServers);
 				rtcPlugin.handleIceServers(message.msgData.iceConfig.iceServers);
 
 				socket.on('easyrtcCmd', function (json) {
 
-					if (json.msgData && json.msgData.type)	{		
-
+					var msgType = json.msgType || json.msgData.type;
+					// if (msgType) 
+					{
 						// cleanup sdp
 						if (json.msgData.sdp) {
 							var sdp = json.msgData.sdp;
@@ -100,7 +103,7 @@
 						}	
 
 						// don't need, could just check for sdp...
-						switch(json.msgData.type) {
+						switch(msgType) {
 					
 						case 'answer':
 						
@@ -121,11 +124,12 @@
 							rtcPlugin.handleCandidate(cand);
 
 							break;
+
 						case 'roomData': 
 
-							alert('unexpected roomdata: ' + json.msgData.roomData);
+							handleRoomData(json.msgData.roomData);
 							break;
-						
+
 						case 'offer': 
 							dlog('got offer');
 
@@ -158,20 +162,66 @@
 	};
 
 	function addPeerButtons(message){
-		dlog('authorizationCallback()');
+		// dlog('authorizationCallback()');
 		var rtcids = Object.keys(message.msgData.roomData.default.clientList);
 
 		var htm = '';
 		for(var i = 0; i < rtcids.length; i++) {
 			var n = rtcids[i];
 			if (n !== myrtcid)
-				htm += '<button onclick="offer(\'' + n + '\')">' + n + '</button>';
+				htm += '<button id="' + n + '" onclick="offer(\'' + n + '\')">' + n + '</button>';
 		}
-		if (htm !== ''){
-			document.getElementById('divPeers').innerHTML = htm;
+		document.getElementById('divPeers').innerHTML = htm;
+	}
+
+/*
+{
+  "msgData": {
+    "roomData": {
+      "default": {
+        "roomName": "default",
+        "roomStatus": "update",
+        "clientListDelta": {
+          "removeClient": {
+            "X0XLzHnnUh9FXceq0Lo9": {
+              "easyrtcid": "X0XLzHnnUh9FXceq0Lo9"
+            }
+          }
+        }
+      }
+    }
+  },
+  "easyrtcid": "-SWJqgr9cAhlr7r60Lo-",
+  "msgType": "roomData",
+  "serverTime": 1397237883668
+}
+*/
+
+	function handleRoomData(roomData) {
+		// dump(roomData, '');
+		var htm = '';
+		if (roomData.default.clientListDelta.updateClient) {
+			var keys = Object.keys(roomData.default.clientListDelta.updateClient);
+			htm = '<button id="' + keys[0] + '" onclick="offer(\'' + keys[0] + '\')">' + keys[0] + '</button>';
+			document.getElementById('divPeers').innerHTML += htm;
 		}
-		else{
-			document.getElementById('divPeers').innerHTML += 'nobody else available'; //  at http://localhost:8080/demos/demo_audio_video_simple.html';
+		else {
+			var keys = Object.keys(roomData.default.clientListDelta.removeClient);
+			document.getElementById(keys[0]).style.display='none';
+			rtcPlugin.close();
+		}
+	}
+
+	// recursive function to dump an object to the debug div; pass in '' as sp
+	function dump(obj, sp) {
+		for (var property in obj) {
+			if (typeof obj[property] === 'object') {
+				dlog(sp + property + ': ');
+				sp += '\t';
+				dump(obj[property], sp);
+			}
+			else
+				dlog(sp + property + ': ' + obj[property]);
 		}
 	}
 
@@ -181,9 +231,11 @@
 
 	function hangup() {
 		rtcPlugin.close();
-		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : remotertcid } , function() { 
+		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : rtcPlugin.remoteId } , function() { 
 			dlog('hangup()');
 		});
+//alert('un-disable');
+		document.getElementById(rtcPlugin.remoteId).disabled = false; 
 	}
 
 	function debug() {
@@ -191,6 +243,7 @@
 	}
 
 	function offer(remoteId) {
+//dlog('call offer for ' + remoteId);
 		// create the offer 
 		rtcPlugin.createOffer(remoteId, function (sdp) {
 			// send it off over signaling
@@ -198,15 +251,20 @@
 				msgType : "offer",
 				targetEasyrtcid : remoteId,
 				msgData : { sdp : sdp, type : "offer" }
-			}, function offerCallbackComplete () {
-				dlog('offerCallback()');
-
+			}, function offerCallbackComplete (param) {
+				dlog('offerCallback()' + param);
 			});
 
 		});
+		document.getElementById(remoteId).disabled = true; 
 	}
 
 	function run() {
+
+		element = document.getElementById("videoElement");
+		element.width = 400;
+		element.height = 300;
+
 		rtcPlugin = new RTCPlugin(element);
 		rtcPlugin.run();
 	}

@@ -431,9 +431,8 @@ void MainWnd::OnPaint()
 		::FillRect(ps.hdc, &rc, brush);
 		::DeleteObject(brush);
 
-		LPCTSTR pszText = _T("hello easyrtc fan, how are ya");
-//		TextOut(ps.hdc, (rc.left + rc.right) / 2, (rc.top + rc.bottom) / 2, pszText, lstrlen(pszText));
-		TextOut(ps.hdc, 50, 50, pszText, lstrlen(pszText));
+		LPCTSTR pszText = _T("EasyRTC.com IE Plugin waiting for a connection");
+		TextOut(ps.hdc, 20, 20, pszText, lstrlen(pszText));
 	}
 
 	::EndPaint(handle(), &ps);

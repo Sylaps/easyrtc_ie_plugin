@@ -43,7 +43,7 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	Json::StyledWriter writer;
 	Json::Value jsonobj(json);
 
-	LOG(INFO) << "\n" << gettime() + " push to native +++++++++++++++++++\n" << json;
+	LOG(INFO) << "\n" << gettime() + " push to native +++++++++++++++++++\n" << cmd << "\n" << json;
 
 	if (cmd == "seticeservers")
 		conductor_->SetIceServers(json);
