@@ -31,9 +31,6 @@
     <ClCompile Include="src\main_wnd.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\peer_connection_client.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\WebRTC_ATL.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -64,9 +61,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\main_wnd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\peer_connection_client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\Resource.h">

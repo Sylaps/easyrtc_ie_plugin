@@ -35,7 +35,7 @@
 #include <string>
 
 #include "main_wnd.h"
-#include "peer_connection_client.h"
+//#include "peer_connection_client.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/mediaconstraintsinterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
@@ -64,7 +64,6 @@ class Conductor
 	: public webrtc::PeerConnectionObserver,
 	public webrtc::CreateSessionDescriptionObserver,
 	public webrtc::MediaConstraintsInterface,
-	public PeerConnectionClientObserver,
 	public MainWndCallback
 {
 public:
@@ -79,7 +78,7 @@ public:
 		STREAM_REMOVED,
 	};
 
-	Conductor(PeerConnectionClient* client, MainWindow* main_wnd);
+	Conductor(MainWindow* main_wnd);
 
 	bool connection_active() const;
 
@@ -173,7 +172,7 @@ protected:
 	// MainWndCallback implementation.
 	//
 
-	virtual void StartLogin(const std::string& server, int port);
+	virtual void StartLogin(const std::string& server, int port);	// old peer client/server code to connect to server
 
 //	virtual void DisconnectFromServer();
 
@@ -196,7 +195,6 @@ protected:
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>peer_connection_factory_;
 
 	MainWindow* mainWindow_;
-	PeerConnectionClient* peerConnectionClient_;
 
 	std::deque<std::string*> pending_messages_;
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> > active_streams_;

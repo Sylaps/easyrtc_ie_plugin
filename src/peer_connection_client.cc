@@ -74,6 +74,7 @@ PeerConnectionClient::~PeerConnectionClient() {
 }
 
 void PeerConnectionClient::InitSocketSignals() {
+  /*
   ASSERT(control_socket_.get() != NULL);
   ASSERT(hanging_get_.get() != NULL);
   control_socket_->SignalCloseEvent.connect(this,
@@ -88,6 +89,7 @@ void PeerConnectionClient::InitSocketSignals() {
       &PeerConnectionClient::OnRead);
   hanging_get_->SignalReadEvent.connect(this,
       &PeerConnectionClient::OnHangingGetRead);
+  */
 }
 
 int PeerConnectionClient::id() const {
@@ -156,6 +158,7 @@ void PeerConnectionClient::OnResolveResult(
 }
 
 void PeerConnectionClient::DoConnect() {
+/*
   control_socket_.reset(CreateClientSocket(server_address_.ipaddr().family()));
   hanging_get_.reset(CreateClientSocket(server_address_.ipaddr().family()));
   InitSocketSignals();
@@ -170,9 +173,11 @@ void PeerConnectionClient::DoConnect() {
   if (!ret) {
     callback_->OnServerConnectionFailure();
   }
+*/
 }
 
 bool PeerConnectionClient::SendToPeer(int peer_id, const std::string& message) {
+  /*
   if (state_ != CONNECTED)
     return false;
 
@@ -191,6 +196,8 @@ bool PeerConnectionClient::SendToPeer(int peer_id, const std::string& message) {
   onconnect_data_ = headers;
   onconnect_data_ += message;
   return ConnectControlSocket();
+  */
+  return true;
 }
 
 bool PeerConnectionClient::SendHangUp(int peer_id) {
@@ -203,6 +210,7 @@ bool PeerConnectionClient::IsSendingMessage() {
 }
 
 bool PeerConnectionClient::SignOut() {
+  /*
   if (state_ == NOT_CONNECTED || state_ == SIGNING_OUT)
     return true;
 
@@ -225,6 +233,7 @@ bool PeerConnectionClient::SignOut() {
   } else {
     state_ = SIGNING_OUT_WAITING;
   }
+  */
 
   return true;
 }
@@ -312,6 +321,7 @@ bool PeerConnectionClient::GetHeaderValue(const std::string& data, size_t eoh,
 bool PeerConnectionClient::ReadIntoBuffer(talk_base::AsyncSocket* socket,
                                           std::string* data,
                                           size_t* content_length) {
+/*
   char buffer[0xffff];
   do {
     int bytes = socket->Recv(buffer, sizeof(buffer));
@@ -345,9 +355,12 @@ bool PeerConnectionClient::ReadIntoBuffer(talk_base::AsyncSocket* socket,
     }
   }
   return ret;
+*/
+  return true;
 }
 
 void PeerConnectionClient::OnRead(talk_base::AsyncSocket* socket) {
+/*
   size_t content_length = 0;
   if (ReadIntoBuffer(socket, &control_data_, &content_length)) {
     size_t peer_id = 0, eoh = 0;
@@ -396,9 +409,11 @@ void PeerConnectionClient::OnRead(talk_base::AsyncSocket* socket) {
       hanging_get_->Connect(server_address_);
     }
   }
+*/
 }
 
 void PeerConnectionClient::OnHangingGetRead(talk_base::AsyncSocket* socket) {
+/*
   LOG(INFO) << __FUNCTION__;
   size_t content_length = 0;
   if (ReadIntoBuffer(socket, &notification_data_, &content_length)) {
@@ -439,6 +454,7 @@ void PeerConnectionClient::OnHangingGetRead(talk_base::AsyncSocket* socket) {
       state_ == CONNECTED) {
     hanging_get_->Connect(server_address_);
   }
+*/
 }
 
 bool PeerConnectionClient::ParseEntry(const std::string& entry,
@@ -475,6 +491,7 @@ bool PeerConnectionClient::ParseServerResponse(const std::string& response,
                                                size_t content_length,
                                                size_t* peer_id,
                                                size_t* eoh) {
+  /*
   int status = GetResponseStatus(response.c_str());
   if (status != 200) {
     LOG(LS_ERROR) << "Received error from server";
@@ -494,6 +511,7 @@ bool PeerConnectionClient::ParseServerResponse(const std::string& response,
   // not e.g. "X-Peer-Id".
   GetHeaderValue(response, *eoh, "\r\nPragma: ", peer_id);
 
+  */
   return true;
 }
 

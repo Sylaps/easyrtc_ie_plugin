@@ -138,7 +138,6 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\main_wnd.cc" />
-    <ClCompile Include="src\peer_connection_client.cc" />
     <ClCompile Include="src\WebRTCAPI.cpp" />
     <ClCompile Include="src\WebRTC_ATL.cpp" />
     <ClCompile Include="WebRTC_ATL_i.c" />
@@ -150,7 +149,6 @@
     <ClInclude Include="include\dllmain.h" />
     <ClInclude Include="include\Interface.h" />
     <ClInclude Include="include\main_wnd.h" />
-    <ClInclude Include="include\peer_connection_client.h" />
     <ClInclude Include="include\Resource.h" />
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\targetver.h" />

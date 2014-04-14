@@ -35,7 +35,7 @@
 
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/base/win32.h"
-#include "peer_connection_client.h"
+//#include "peer_connection_client.h"
 #include "talk/media/base/mediachannel.h"
 #include "talk/media/base/videocommon.h"
 #include "talk/media/base/videoframe.h"
@@ -78,7 +78,7 @@ public:
 //	virtual UI current_ui() = 0;
 
 	virtual void SwitchToConnectUI() = 0;
-	virtual void SwitchToPeerList(const Peers& peers) = 0;
+//	virtual void SwitchToPeerList(const Peers& peers) = 0;
 	virtual void SwitchToStreamingUI() = 0;
 
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video) = 0;
@@ -114,7 +114,7 @@ public:
 	virtual void RegisterObserver(MainWndCallback* callback);
 	virtual bool IsWindow();
 	virtual void SwitchToConnectUI();
-	virtual void SwitchToPeerList(const Peers& peers);
+//	virtual void SwitchToPeerList(const Peers& peers);
 	virtual void SwitchToStreamingUI();
 	virtual void MessageBox(const char* caption, const char* text, bool is_error);
 

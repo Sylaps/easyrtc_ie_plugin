@@ -6,7 +6,7 @@
 #include "talk/base/win32socketserver.h"
 #include "conductor.h"
 #include "main_wnd.h"
-#include "peer_connection_client.h"
+//#include "peer_connection_client.h"
 
 #include "WebRTCAPI.h"
 
@@ -115,12 +115,12 @@ IFACEMETHODIMP CWebRTCAPI::run()
 		return -1;
 	}
 
-	PeerConnectionClient client;
+//	PeerConnectionClient client;
 
 	if (!talk_base::InitializeSSL(NULL) || !talk_base::InitializeSSLThread())
 		LOG(LS_ERROR) << "error failed to init ssl";
 
-	conductor_ = new talk_base::RefCountedObject<Conductor>(&client, &mainWindow);
+	conductor_ = new talk_base::RefCountedObject<Conductor>(&mainWindow);
 	conductor_->SetJSCallback(this);
 
 	// *** keep ***
@@ -150,9 +150,9 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	{
 //		PostQuitMessage(0);			// don't do this
 
-		client.SignOut();
+//		client.SignOut();
 
-		client.disconnect_all();
+//		client.disconnect_all();
 
 		conductor_->Close();
 

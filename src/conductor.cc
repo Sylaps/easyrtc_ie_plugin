@@ -86,10 +86,9 @@ protected:
 	}
 };
 
-Conductor::Conductor(PeerConnectionClient* client, MainWindow* main_wnd)
-	: peerConnectionClient_(client), mainWindow_(main_wnd)
+Conductor::Conductor(MainWindow* main_wnd)
+	: mainWindow_(main_wnd)
 {
-	peerConnectionClient_->RegisterObserver(this);
 	main_wnd->RegisterObserver(this);
 	SetAllowDtlsSctpDataChannels();
 }
@@ -108,7 +107,6 @@ bool Conductor::connection_active() const
 
 void Conductor::Close()
 {
-	peerConnectionClient_->SignOut();
 	DeletePeerConnection();
 }
 
@@ -126,10 +124,6 @@ void Conductor::Hangup()
 {
 	if (peer_connection_.get())
 	{
-		peerConnectionClient_->SendHangUp(0); 
-
-		peerConnectionClient_->SignOut();				// need this? not sure
-		peerConnectionClient_->disconnect_all();		// need this? not sure
 
 		DeletePeerConnection();
 	}
@@ -309,7 +303,6 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate)
 void Conductor::OnSignedIn()
 {
 	LOG(INFO) << __FUNCTION__;
-	mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
 }
 
 void Conductor::OnDisconnected()
@@ -356,7 +349,6 @@ void Conductor::OnMessageFromPeer(int notused, const std::string& message)
 		if (!InitializePeerConnection())
 		{
 			LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
-			peerConnectionClient_->SignOut();
 			return;
 		}
 	}
@@ -433,20 +425,16 @@ void Conductor::OnMessageSent(int err)
 
 void Conductor::OnServerConnectionFailure()
 {
-	mainWindow_->MessageBox("Error", ("Failed to connect to " + server_).c_str(),
-		true);
+	mainWindow_->MessageBox("Error", ("Failed to connect to " + server_).c_str(), true);
 }
 
 //
 // MainWndCallback implementation.
 //
 
+// old peer client/server code to connect to server
 void Conductor::StartLogin(const std::string& server, int port)
 {
-	if (peerConnectionClient_->is_connected())
-		return;
-	server_ = server;
-	peerConnectionClient_->Connect(server, port, GetPeerName());
 }
 
 //void Conductor::DisconnectFromServer()
@@ -566,14 +554,6 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 
 		if (mainWindow_->IsWindow())
 		{
-			if (peerConnectionClient_->is_connected())
-			{
-				mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
-			}
-			else
-			{
-				mainWindow_->SwitchToConnectUI();
-			}
 		}
 		else
 		{
@@ -600,16 +580,10 @@ void Conductor::UIThreadCallback(int msg_id, void* data)
 			pending_messages_.push_back(msg);
 		}
 
-		if (!pending_messages_.empty() && !peerConnectionClient_->IsSendingMessage())
+		if (!pending_messages_.empty())
 		{
 			msg = pending_messages_.front();
 			pending_messages_.pop_front();
-
-			if (!peerConnectionClient_->SendToPeer(0, *msg))
-			{
-				LOG(LS_ERROR) << "SendToPeer failed";
-				//DisconnectFromServer();
-			}
 			delete msg;
 		}
 

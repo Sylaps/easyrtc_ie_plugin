@@ -53,6 +53,7 @@ struct PeerConnectionClientObserver {
   virtual ~PeerConnectionClientObserver() {}
 };
 
+// TODO this entire class may be obsolete...
 class PeerConnectionClient : public sigslot::has_slots<>,
                              public talk_base::MessageHandler {
  public:

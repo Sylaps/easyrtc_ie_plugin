@@ -188,9 +188,9 @@ void MainWnd::SwitchToConnectUI()
 //	::SetFocus(edit1_);
 }
 
+	/*
 void MainWnd::SwitchToPeerList(const Peers& peers)
 {
-	/*
 	LayoutConnectUI(false);
 
 	::SendMessage(listbox_, LB_RESETCONTENT, 0, 0);
@@ -203,8 +203,8 @@ void MainWnd::SwitchToPeerList(const Peers& peers)
 	ui_ = LIST_PEERS;
 	LayoutPeerListUI(true);
 	::SetFocus(listbox_);
-	*/
 }
+	*/
 
 void MainWnd::SwitchToStreamingUI()
 {
