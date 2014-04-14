@@ -36,6 +36,17 @@
 	,   element
 	,   setupCallbacks;
 
+	if (!Object.keys) {
+		Object.keys = function(obj) {
+			var keys = [];
+			for (var p in obj) {
+				if (obj.hasOwnProperty(p))
+					keys.push(p);
+			}
+			return keys;
+		}
+	}
+
 	window.onload = function () {
 
 		element = document.getElementById("videoElement");
@@ -85,10 +96,10 @@
 				socket.on('easyrtcCmd', function (json) {
 
 					var msgType = json.msgType || json.msgData.type;
-					// if (msgType) 
+					if (msgType) 
 					{
 						// cleanup sdp
-						if (json.msgData.sdp) {
+						if (json.msgData && json.msgData.sdp) {
 							var sdp = json.msgData.sdp;
 							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
 							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
@@ -145,6 +156,10 @@
 
 							break;
 						
+						case 'hangup':
+							rtcPlugin.close();
+							break;
+
 						default:
 						
 							alert('unexpected message from easyrtc server ' + JSON.stringify(json));
@@ -160,8 +175,7 @@
 	};
 
 	function addPeerButtons(message){
-		// dlog('authorizationCallback()');
-		var rtcids = Object.keys(message.msgData.roomData.default.clientList);
+		var rtcids = Object.keys(message.msgData.roomData["default"].clientList);
 
 		var htm = '';
 		for(var i = 0; i < rtcids.length; i++) {
@@ -198,13 +212,13 @@
 	function handleRoomData(roomData) {
 		// dump(roomData, '');
 		var htm = '';
-		if (roomData.default.clientListDelta.updateClient) {
-			var keys = Object.keys(roomData.default.clientListDelta.updateClient);
+		if (roomData["default"].clientListDelta.updateClient) {
+			var keys = Object.keys(roomData["default"].clientListDelta.updateClient);
 			htm = '<button id="' + keys[0] + '" onclick="offer(\'' + keys[0] + '\')">' + keys[0] + '</button>';
 			document.getElementById('divPeers').innerHTML += htm;
 		}
 		else {
-			var keys = Object.keys(roomData.default.clientListDelta.removeClient);
+			var keys = Object.keys(roomData["default"].clientListDelta.removeClient);
 			document.getElementById(keys[0]).style.display='none';
 			rtcPlugin.close();
 		}

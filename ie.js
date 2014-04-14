@@ -235,7 +235,6 @@ function loaded() {
 
 function gotAnswer(json) {
 	document.getElementById('divLog').innerHTML += 'gotAnswer()<br>';
-console.log('got answer ' + JSON.stringify(json));
 
 	if (json.msgData.sdp) {
 		document.getElementById('divSDP').innerHTML += '111 ' + json.msgData.sdp;
