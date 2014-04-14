@@ -20,7 +20,8 @@ DisableProgramGroupPage=yes
 OutputBaseFilename=setup
 Compression=lzma
 SolidCompression=yes
-Uninstallable=no
+Uninstallable=yes
+UninstallDisplayIcon={userappdata}\WebRTCIEPlugin\uninstall.ico
 ; http://blog.ksoftware.net/tag/ksign/
 SignTool=kSign /d $qEasyWebRTC IE Plugin$q /du $qhttp://www.easyrtc.com$q $f
 
@@ -40,6 +41,14 @@ Source: "msvcr120.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreve
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 Source: "register_webrtc_plugin.bat"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "unregister_webrtc_plugin.bat"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "C:\WebRTC\EasyRTCActiveX\installation\uninstall.ico"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
 
 [Run]
 Filename: "{userappdata}\WebRTCIEPlugin\register_webrtc_plugin.bat"
+
+[UninstallRun]
+Filename: "{userappdata}\WebRTCIEPlugin\unregister_webrtc_plugin.bat"; WorkingDir: "{userappdata}\WebRTCIEPlugin"; Flags: skipifdoesntexist
+
+[Dirs]
+Name: "{userappdata}\WebRTCIEPlugin\WebRTCIEPlugin"
