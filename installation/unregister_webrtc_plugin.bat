@@ -5,8 +5,4 @@ echo.'%USERNAME%' must have administrative privilege to uninstall EasyWebRTC Plu
 
 cd %~dp0
 
-set "filemask=WebRTC_ATL.dll"
-for %%A in (%filemask%) do regsvr32 /u %%A || GOTO:EOF
-
-ECHO.&PAUSE&GOTO:EOF
-
+regsvr32 /u WebRTC_ATL.dll
