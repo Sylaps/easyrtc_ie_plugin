@@ -57,7 +57,7 @@
 
 			    rtcPlugin.onicecandidate = function (candidate) {
 			    	
-			    	dlog("native --> onicecandidate");
+			    	// dlog("native --> onicecandidate");
 
 			    	socket.emit ("easyrtcCmd", {
 					  msgType: "candidate",
@@ -80,8 +80,6 @@
 				addPeerButtons(message);
 				
 				iceServers = message.msgData.iceConfig.iceServers;
-//dlog('setup ice servers');
-//dlog(message.msgData.iceConfig.iceServers);
 				rtcPlugin.handleIceServers(message.msgData.iceConfig.iceServers);
 
 				socket.on('easyrtcCmd', function (json) {
@@ -234,7 +232,6 @@
 		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : rtcPlugin.remoteId } , function() { 
 			dlog('hangup()');
 		});
-//alert('un-disable');
 		document.getElementById(rtcPlugin.remoteId).disabled = false; 
 	}
 
@@ -243,7 +240,6 @@
 	}
 
 	function offer(remoteId) {
-//dlog('call offer for ' + remoteId);
 		// create the offer 
 		rtcPlugin.createOffer(remoteId, function (sdp) {
 			// send it off over signaling
