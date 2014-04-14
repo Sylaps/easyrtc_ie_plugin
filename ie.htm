@@ -157,7 +157,7 @@
 							break;
 						
 						case 'hangup':
-							rtcPlugin.close();
+							rtcPlugin.hangUp();
 							break;
 
 						default:
@@ -220,7 +220,7 @@
 		else {
 			var keys = Object.keys(roomData["default"].clientListDelta.removeClient);
 			document.getElementById(keys[0]).style.display='none';
-			rtcPlugin.close();
+			rtcPlugin.hangUp();
 		}
 	}
 
@@ -242,7 +242,7 @@
 	}
 
 	function hangup() {
-		rtcPlugin.close();
+		rtcPlugin.hangUp();
 		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : rtcPlugin.remoteId } , function() { 
 			dlog('hangup()');
 		});

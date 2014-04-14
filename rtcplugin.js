@@ -155,10 +155,10 @@
 	};
 
 	/*
-	* close() 
+	* hangUp() 
 	* - closes the current call
 	*/
-	RTCPlugin.prototype.close = function () {
+	RTCPlugin.prototype.hangUp = function () {
 		nativeCall(this, "hangup", '');
 	};
 
