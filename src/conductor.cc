@@ -310,9 +310,6 @@ void Conductor::OnDisconnected()
 	LOG(INFO) << __FUNCTION__;
 
 	DeletePeerConnection();
-
-	if (mainWindow_->IsWindow())
-		mainWindow_->SwitchToConnectUI();
 }
 
 void Conductor::OnPeerConnected(int id, const std::string& name)
@@ -437,36 +434,6 @@ void Conductor::StartLogin(const std::string& server, int port)
 {
 }
 
-//void Conductor::DisconnectFromServer()
-//{
-//	if (peerConnectionClient_->is_connected())
-//		peerConnectionClient_->SignOut();
-//}
-
-/*
-void Conductor::ConnectToPeer(int peer_id)
-{
-//	ASSERT(peer_id_ == -1);
-//	ASSERT(peer_id != -1);
-
-	if (peer_connection_.get())
-	{
-		mainWindow_->MessageBox("Error",
-			"We only support connecting to one peer at a time", true);
-		return;
-	}
-
-	if (InitializePeerConnection())
-	{
-//		peer_id_ = peer_id;
-		peer_connection_->CreateOffer(this, NULL);
-	}
-	else
-	{
-		mainWindow_->MessageBox("Error", "Failed to initialize PeerConnection", true);
-	}
-}
-*/
 
 cricket::VideoCapturer* Conductor::OpenVideoCaptureDevice()
 {
@@ -523,23 +490,9 @@ void Conductor::AddStreams()
 		talk_base::scoped_refptr<webrtc::MediaStreamInterface> >
 		MediaStreamPair;
 	active_streams_.insert(MediaStreamPair(stream->label(), stream));
-	mainWindow_->SwitchToStreamingUI();
 }
 
-/*
-void Conductor::DisconnectFromCurrentPeer()
-{
-	LOG(INFO) << __FUNCTION__;
-	if (peer_connection_.get())
-	{
-		peerConnectionClient_->SendHangUp(0); //  peer_id_);
-		DeletePeerConnection();
-	}
 
-	if (mainWindow_->IsWindow())
-		mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
-}
-*/
 
 void Conductor::UIThreadCallback(int msg_id, void* data)
 {
@@ -646,5 +599,10 @@ void Conductor::PostToBrowser(const std::string& json_object)
 	std::string* json = new std::string(json_object);
 	LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
 
-	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, json);
+
+	// Threading issues present here, so we are trying out a direct call to javascript... fails as well  
+	//mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, json);
+	
+	javascriptCallback_->SendToBrowser(*json); 
+	
 }

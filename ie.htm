@@ -51,7 +51,7 @@
 
 		element = document.getElementById("videoElement");
 
-		socket = io.connect('dev.easyrtc.com:80');
+		socket = io.connect('192.168.1.16:8080');
 		// socket = io.connect('172.16.40.108:8080');
 
 		var auth = { 
@@ -95,11 +95,13 @@
 
 				socket.on('easyrtcCmd', function (json) {
 
-					var msgType = json.msgType || json.msgData.type;
-					if (msgType) 
-					{
-						// cleanup sdp
-						if (json.msgData && json.msgData.sdp) {
+				    dlog("socket.on(easyrtcCmd) --> "+ JSON.stringify(json));
+
+				    var msgType = json.msgType || json.msgData.type;
+
+				    if (msgType) {
+				        // cleanup sdp
+				        if (json.msgData && json.msgData.sdp) {
 							var sdp = json.msgData.sdp;
 							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
 							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
@@ -263,10 +265,10 @@
 				msgData : { sdp : sdp, type : "offer" }
 			}, function offerCallbackComplete (param) {
 				dlog('offerCallback()' + param);
+				document.getElementById(remoteId).disabled = true;
 			});
-
 		});
-		document.getElementById(remoteId).disabled = true; 
+		 
 	}
 
 	function run() {
