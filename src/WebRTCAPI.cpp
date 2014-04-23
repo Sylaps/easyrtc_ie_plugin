@@ -13,29 +13,26 @@
 
 extern const std::string gettime();
 
-IFACEMETHODIMP CWebRTCAPI::hello(BSTR *pRet)
-{
+//TODO: remove 
+IFACEMETHODIMP CWebRTCAPI::hello(BSTR *pRet) {
 	// Allocate memory for the string.
 	*pRet = ::SysAllocString(L"HelloWorld from C++");
 	return pRet ? S_OK : E_OUTOFMEMORY;
 }
 
-void showDebugAlert(LPCWSTR caption, LPCWSTR text)
-{
+void showDebugAlert(LPCWSTR caption, LPCWSTR text) {
 #ifdef DEBUG
-	MessageBox(NULL, text, caption, MB_OK | MB_SYSTEMMODAL);
+//	MessageBox(NULL, text, caption, MB_OK | MB_SYSTEMMODAL);
 #endif // DEBUG
 }
 
 // util
-std::string BSTR2string(BSTR bstr)
-{
+std::string BSTR2string(BSTR bstr) {
 	USES_CONVERSION;
 	return std::string(W2A(bstr));
 }
 
-IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
-{
+IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 	std::string cmd = BSTR2string(bcmd);
 	std::string json = BSTR2string(bjson);
 
@@ -65,52 +62,48 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson)
 	return S_OK;
 }
 
-void CWebRTCAPI::SendToBrowser(const std::string& json)		// from JavaScriptCallback
-{
+void CWebRTCAPI::SendToBrowser(const std::string& json)	{
 	BSTR bjson = Convert(json);
 	Fire_EventToBrowser(bjson);
 }
 
 #ifdef DEBUG
-void logtofile()
-{
+void logtofile() {
 //	std::string log = "verbose";
 	talk_base::LogMessage::LogToDebug(talk_base::LS_INFO);
 
 	talk_base::FileStream *fs = new talk_base::FileStream();
-	if (!fs->Open("WebRtcAx.log", "w", NULL))
+	if (!fs->Open("WebRtcAx.log", "w", NULL)) {
 		LOG(INFO) << "Could not open file";
-	else
+	}
+	else {
 		talk_base::LogMessage::LogToStream(fs, talk_base::LS_INFO);
+	}
 }
 #endif
 
-//TODO: move this into the class plz
-talk_base::Win32Thread w32_thread;
 
 // glorified Ctor 
-IFACEMETHODIMP CWebRTCAPI::run()
-{
+IFACEMETHODIMP CWebRTCAPI::run() {
+
 #ifdef DEBUG
 	logtofile();
 #endif
 	
-	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-
 	talk_base::SetRandomTestMode(true); 
 	talk_base::EnsureWinsockInit();
-
-	talk_base::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
+	
+	DWORD ui_thread_id_ = ::GetCurrentThreadId();
 
 	controlHwnd = m_hWnd;
 
-	if (!talk_base::InitializeSSL(NULL) || !talk_base::InitializeSSLThread())
+	if (!talk_base::InitializeSSL(NULL) || !talk_base::InitializeSSLThread()) {
 		LOG(LS_ERROR) << "error failed to init ssl";
+	}
 	
 	conductor_->SetJSCallback(this);
 
-	if (controlHwnd == NULL || !mainWindow.Create(controlHwnd))
-	{
+	if (controlHwnd == NULL || !mainWindow.Create(controlHwnd))	{
 		showDebugAlert(_T("Error in my code :("), _T("hwnd is null!"));
 		return S_OK;
 	}
@@ -118,19 +111,21 @@ IFACEMETHODIMP CWebRTCAPI::run()
 	return S_OK;
 }
 
-LRESULT CWebRTCAPI::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-{
+LRESULT CWebRTCAPI::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	mainWindow.OnPaint();
 	return 0;
 }
 
-LRESULT CWebRTCAPI::OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-{
+LRESULT CWebRTCAPI::OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	return S_OK;
 }
 
-LRESULT CWebRTCAPI::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-{
+LRESULT CWebRTCAPI::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	mainWindow.Destroy();
+	return S_OK;
+}
+
+LRESULT CWebRTCAPI::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	mainWindow.ProcessUICallback(uMsg, wParam, lParam, bHandled);
 	return S_OK;
 }

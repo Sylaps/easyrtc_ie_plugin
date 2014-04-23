@@ -101,6 +101,10 @@ BEGIN_MSG_MAP(CWebRTCAPI)
 	MESSAGE_HANDLER(33176, OnDestroy)
 	MESSAGE_HANDLER(WM_CLOSE, OnDestroy)
 	MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+
+	// HACK: using the message loop as a thread-safe message passing structure
+	MESSAGE_HANDLER(WM_APP+1,  OnMessage)
+
 END_MSG_MAP()
 
 // Handler prototypes:
@@ -108,15 +112,12 @@ END_MSG_MAP()
 //  LRESULT NotifyHandler(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
 // ISupportsErrorInfo
-	STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid)
-	{
-		static const IID* const arr[] =
-		{
+	STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid) {
+		static const IID* const arr[] = {
 			&IID_IWebRTCAPI,
 		};
 
-		for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++)
-		{
+		for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++) {
 			if (InlineIsEqualGUID(*arr[i], riid))
 				return S_OK;
 		}
@@ -140,16 +141,13 @@ public:
 	
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-	HRESULT FinalConstruct()
-	{
+	HRESULT FinalConstruct() {
 		return S_OK;
 	}
 
-	void FinalRelease()
-	{
+	void FinalRelease()	{
 
-		try
-		{
+		try {
 			conductor_->Close();
 
 			talk_base::CleanupSSL();
@@ -158,8 +156,7 @@ public:
 
 			CoUninitialize();
 		}
-		catch (std::exception& ex)
-		{
+		catch (std::exception& ex){
 			LOG(LS_ERROR) << "Exception on shutdown " << ex.what();
 		}
 
@@ -168,6 +165,7 @@ public:
 	LRESULT OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnMessage(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(WebRTCAPI), CWebRTCAPI)

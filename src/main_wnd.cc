@@ -19,7 +19,7 @@
 * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
 * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+* OR BUSINESS INTEuRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -33,20 +33,20 @@
 
 #include "talk/base/common.h"
 #include "talk/base/logging.h"
+#include "talk/base/win32socketserver.h"
 #include "defaults.h"
 
 ATOM MainWnd::wnd_class_ = 0;
 const wchar_t MainWnd::kClassName[] = L"WebRTC_MainWnd";
 
-namespace
-{
+namespace {
 	const char kConnecting[] = "Connecting... ";
 	const char kNoVideoStreams[] = "(no video streams either way)";
 	const char kNoIncomingStream[] = "(no incoming video)";
 
 	void CalculateWindowSizeForText(HWND wnd, const wchar_t* text,
-		size_t* width, size_t* height)
-	{
+		size_t* width, size_t* height) {
+
 		HDC dc = ::GetDC(wnd);
 		RECT text_rc = { 0 };
 		::DrawText(dc, text, -1, &text_rc, DT_CALCRECT | DT_SINGLELINE);
@@ -63,21 +63,18 @@ namespace
 			(client.bottom - client.top);
 	}
 
-	HFONT GetDefaultFont()
-	{
+	HFONT GetDefaultFont() {
 		static HFONT font = reinterpret_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
 		return font;
 	}
 
-	std::string GetWindowText(HWND wnd)
-	{
+	std::string GetWindowText(HWND wnd) {
 		char text[MAX_PATH] = { 0 };
 		::GetWindowTextA(wnd, &text[0], ARRAYSIZE(text));
 		return text;
 	}
 
-	void AddListBoxItem(HWND listbox, const std::string& str, LPARAM item_data)
-	{
+	void AddListBoxItem(HWND listbox, const std::string& str, LPARAM item_data) {
 		LRESULT index = ::SendMessageA(listbox, LB_ADDSTRING, 0,
 			reinterpret_cast<LPARAM>(str.c_str()));
 		::SendMessageA(listbox, LB_SETITEMDATA, index, item_data);
@@ -88,87 +85,93 @@ namespace
 MainWnd::MainWnd()
 	: 
 //ui_(CONNECT_TO_SERVER), 
-	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL)
-{
+	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL) {
 }
 
-MainWnd::~MainWnd()
-{
+MainWnd::~MainWnd() {
 	ASSERT(!IsWindow());
 }
 
+//TODO: move this into the class plz
+talk_base::Win32Thread w32_thread;
 
-bool MainWnd::Create(HWND hwnd)
-{
+bool MainWnd::Create(HWND hwnd) {
 	ASSERT(wnd_ == NULL);
 
 	ui_thread_id_ = ::GetCurrentThreadId();
 	wnd_ = hwnd;
+
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (!hr) {
+		LOG(INFO) << "CoInitializeEx failed with COINIT_MULTITHREADED";
+	}
+	talk_base::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
 
 	::SendMessage(wnd_, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()), TRUE);
 
 	return wnd_ != NULL;
 }
 
-bool MainWnd::Destroy()
-{
+bool MainWnd::Destroy() {
 	BOOL ret = FALSE;
-	if (IsWindow())
-	{
+	if (IsWindow()) {
 		ret = ::DestroyWindow(wnd_);
 	}
 
 	return ret != FALSE;
 }
 
-void MainWnd::RegisterObserver(MainWndCallback* callback)
-{
+void MainWnd::RegisterObserver(MainWndCallback* callback) {
 	callback_ = callback;
 }
 
-bool MainWnd::IsWindow()
-{
+bool MainWnd::IsWindow() {
 	return wnd_ && ::IsWindow(wnd_) != FALSE;
 }
 
 
 
-void MainWnd::MessageBox(const char* caption, const char* text, bool is_error)
-{
+void MainWnd::MessageBox(const char* caption, const char* text, bool is_error) {
 	DWORD flags = MB_OK;
 	if (is_error)
 		flags |= MB_ICONERROR;
-
+	
 	::MessageBoxA(handle(), text, caption, flags);
 }
 
-void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video)
-{
+void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
 	local_renderer_.reset(new VideoRenderer(handle(), 1, 1, local_video));
 }
 
-void MainWnd::StopLocalRenderer()
-{
+void MainWnd::StopLocalRenderer() {
 	local_renderer_.reset();
 }
 
-void MainWnd::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video)
-{
+void MainWnd::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
 	remote_renderer_.reset(new VideoRenderer(handle(), 1, 1, remote_video));
 }
 
-void MainWnd::StopRemoteRenderer()
-{
+void MainWnd::StopRemoteRenderer() {
 	remote_renderer_.reset();
 }
 
-void MainWnd::QueueUIThreadCallback(int msg_id, void* data)
-{
-	::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
+	
+//	BOOL b = ::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+
+	LRESULT b = ::SendMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	if (b) {
+		LOG(INFO) << __FUNCTION__ << " failed to post to thread: " << ui_thread_id_;
+	}
 }
 
-void MainWnd::OnPaint()
-{
+void MainWnd::ProcessUICallback(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	if (uMsg == UI_THREAD_CALLBACK)	{
+		callback_->UIThreadCallback(static_cast<int>(wParam), reinterpret_cast<void*>(lParam));
+	}
+}
+
+void MainWnd::OnPaint() {
 
 	PAINTSTRUCT ps;
 	::BeginPaint(handle(), &ps);
@@ -179,8 +182,8 @@ void MainWnd::OnPaint()
 	VideoRenderer* local_renderer = local_renderer_.get();
 	VideoRenderer* remote_renderer = remote_renderer_.get();
 
-	if (remote_renderer && local_renderer)
-	{
+	if (remote_renderer && local_renderer) {
+
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 		AutoLock<VideoRenderer> remote_lock(remote_renderer);
 
@@ -189,8 +192,8 @@ void MainWnd::OnPaint()
 		int rvwidth = rvbmi.bmiHeader.biWidth;
 
 		const uint8* rvimage = remote_renderer->image();
-		if (rvimage != NULL)
-		{
+
+		if (rvimage != NULL) {
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
@@ -208,8 +211,7 @@ void MainWnd::OnPaint()
 			// float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
 
 			HDC all_dc[] = { ps.hdc, dc_mem };
-			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i)
-			{
+			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i) {
 				SetMapMode(all_dc[i], MM_ISOTROPIC);
 				SetWindowExtEx(all_dc[i], logical_area.x, logical_area.y, NULL);
 				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
@@ -244,15 +246,13 @@ void MainWnd::OnPaint()
 			StretchDIBits(dc_mem, x, y, rvwidth, rvheight,
 				0, 0, rvwidth, rvheight, rvimage, &rvbmi, DIB_RGB_COLORS, SRCCOPY);
 
-			if ((rc.right - rc.left) > 300) //  && (rc.bottom - rc.top) > 200)
-			{
+			if ((rc.right - rc.left) > 300) {
 				const BITMAPINFO& lvbmi = local_renderer->bmi();
 				const uint8* lvimage = local_renderer->image();
 				// int thumb_width = bmi.bmiHeader.biWidth / 2;
 				// int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
 
-				if ((rc.right - rc.left) > 399) 
-				{
+				if ((rc.right - rc.left) > 399)	{
 					thumb_width = 140; //  160; 
 					thumb_height = 105; //  120;
 				}
@@ -272,8 +272,7 @@ void MainWnd::OnPaint()
 			::DeleteObject(bmp_mem);
 			::DeleteDC(dc_mem);
 		}
-		else
-		{
+		else {
 			// We're still waiting for the video stream to be initialized.
 			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
 			::FillRect(ps.hdc, &rc, brush);
@@ -284,12 +283,10 @@ void MainWnd::OnPaint()
 			::SetBkMode(ps.hdc, TRANSPARENT);
 
 			std::string text(kConnecting);
-			if (!local_renderer->image())
-			{
+			if (!local_renderer->image()) {
 				text += kNoVideoStreams;
 			}
-			else
-			{
+			else {
 				text += kNoIncomingStream;
 			}
 			::DrawTextA(ps.hdc, text.c_str(), -1, &rc,
@@ -297,8 +294,7 @@ void MainWnd::OnPaint()
 			::SelectObject(ps.hdc, old_font);
 		}
 	}
-	else if (local_renderer && false)
-	{
+	else if (local_renderer && false) {
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 
 		const BITMAPINFO& bmi = local_renderer->bmi();
@@ -306,8 +302,9 @@ void MainWnd::OnPaint()
 		int width = bmi.bmiHeader.biWidth;
 
 		const uint8* image = local_renderer->image();
-		if (image != NULL)
-		{
+
+		if (image != NULL) {
+
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
@@ -346,8 +343,7 @@ void MainWnd::OnPaint()
 			::DeleteDC(dc_mem);
 		}
 	}
-	else
-	{
+	else {
 		HBRUSH brush = ::CreateSolidBrush(::GetSysColor(COLOR_WINDOW));
 		::FillRect(ps.hdc, &rc, brush);
 		::DeleteObject(brush);
@@ -359,18 +355,16 @@ void MainWnd::OnPaint()
 	::EndPaint(handle(), &ps);
 }
 
-void MainWnd::OnDestroyed()
-{
+void MainWnd::OnDestroyed() {
 	PostQuitMessage(0);
 }
-
 
 
 MainWnd::VideoRenderer::VideoRenderer(
 	HWND wnd, int width, int height,
 	webrtc::VideoTrackInterface* track_to_render)
-	: wnd_(wnd), rendered_track_(track_to_render)
-{
+	: wnd_(wnd), rendered_track_(track_to_render) {
+
 	::InitializeCriticalSection(&buffer_lock_);
 	ZeroMemory(&bmi_, sizeof(bmi_));
 	bmi_.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -379,19 +373,16 @@ MainWnd::VideoRenderer::VideoRenderer(
 	bmi_.bmiHeader.biCompression = BI_RGB;
 	bmi_.bmiHeader.biWidth = width;
 	bmi_.bmiHeader.biHeight = -height;
-	bmi_.bmiHeader.biSizeImage = width * height *
-		(bmi_.bmiHeader.biBitCount >> 3);
+	bmi_.bmiHeader.biSizeImage = width * height * (bmi_.bmiHeader.biBitCount >> 3);
 	rendered_track_->AddRenderer(this);
 }
 
-MainWnd::VideoRenderer::~VideoRenderer()
-{
+MainWnd::VideoRenderer::~VideoRenderer() {
 	rendered_track_->RemoveRenderer(this);
 	::DeleteCriticalSection(&buffer_lock_);
 }
 
-void MainWnd::VideoRenderer::SetSize(int width, int height)
-{
+void MainWnd::VideoRenderer::SetSize(int width, int height) {
 	AutoLock<VideoRenderer> lock(this);
 
 	bmi_.bmiHeader.biWidth = width;
@@ -401,20 +392,19 @@ void MainWnd::VideoRenderer::SetSize(int width, int height)
 	image_.reset(new uint8[bmi_.bmiHeader.biSizeImage]);
 }
 
-void MainWnd::VideoRenderer::RenderFrame(const cricket::VideoFrame* frame)
-{
+void MainWnd::VideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
 	if (!frame)
 		return;
 
-	{
-		AutoLock<VideoRenderer> lock(this);
+	AutoLock<VideoRenderer> lock(this);
 
-		ASSERT(image_.get() != NULL);
-		frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
-			image_.get(),
-			bmi_.bmiHeader.biSizeImage,
-			bmi_.bmiHeader.biWidth *
-			bmi_.bmiHeader.biBitCount / 8);
-	}
+	ASSERT(image_.get() != NULL);
+	frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
+		image_.get(),
+		bmi_.bmiHeader.biSizeImage,
+		bmi_.bmiHeader.biWidth *
+		bmi_.bmiHeader.biBitCount / 8);
+
 	InvalidateRect(wnd_, NULL, TRUE);
 }
+

@@ -16,17 +16,6 @@
 	<button onclick="debug()">debug</button>
 	<br>
     
-    <object id="videoElement"
-            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=400 width=0></object>
-    
-	<div id='divMe'></div>
-	<div id='divPeers'> </div>
-	<div id='divATL'> </div>
-	<div id='divSDP'> </div>
-	<pre>
-		<div id='divLog'> </div>
-	</pre>
     <script type="text/javascript">
 
 	var myrtcid
@@ -49,10 +38,11 @@
 
 	window.onload = function () {
 
+
 		element = document.getElementById("videoElement");
 
+	    //socket = io.connect('dev.easyrtc.com');
 		socket = io.connect('192.168.1.16:8080');
-		// socket = io.connect('172.16.40.108:8080');
 
 		var auth = { 
 			"msgType" : "authenticate", 
@@ -87,7 +77,8 @@
 
 				/* Handle displaying the button to connect to other peers... */
 
-				myrtcid = message.msgData.easyrtcid;
+			    myrtcid = message.msgData.easyrtcid;
+			    document.getElementById("myid").innerHTML = "My id is: " + myrtcid;
 				addPeerButtons(message);
 				
 				iceServers = message.msgData.iceConfig.iceServers;
@@ -279,13 +270,42 @@
 
 		rtcPlugin = new RTCPlugin(element);
 		rtcPlugin.run();
-	}
+    }
 
 	function dlog(text) {
 		document.getElementById('divLog').innerHTML += text + '<br>';
 	}
 
+	function readyStateChange() {
+	    if (videoElement.readyState === 4) {
+	        /*if (confirm('Would you like to enable video sharing?')) {
+    	        run();
+	        } else {
+	            dlog("Unable to load, user denied access to video devices.");
+	        }**/
+	        setTimeout(function () {
+	            run();
+	            setTimeout(function () {
+	                authenticate();
+	            }, 0);
+	        }, 0);
+	    }
+	}
     </script>
+
+    <object id="videoElement" 
+            onreadystatechange="readyStateChange()"
+            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+            height=400 width=0></object>
+    
+	<div id='divMe'></div>
+	<div id='divPeers'> </div>
+	<div id='divATL'> </div>
+	<div id='divSDP'> </div>
+    <div id='myid'></div>
+	<pre>
+		<div id='divLog'> </div>
+	</pre>
 
 </body>
 </html>

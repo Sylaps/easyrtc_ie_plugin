@@ -104,6 +104,8 @@ public:
 	virtual bool IsWindow();
 	virtual void MessageBox(const char* caption, const char* text, bool is_error);
 
+	void ProcessUICallback(UINT, WPARAM, LPARAM, BOOL&);
+
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
 	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video);

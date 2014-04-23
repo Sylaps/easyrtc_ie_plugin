@@ -18,7 +18,6 @@
 	* (see setEventHandler)
 	*/
 	/* private */ function nativeEventHandler(data) {
-
 		var json;
 		var obj;
 		if (typeof data == 'string'){
@@ -26,6 +25,8 @@
 		} else {
 			json = JSON.parse(data[0]);
 		}
+
+	    dlog("!!!!!!!!!!!!!!!!!!!!!!! call from native:"+ JSON.stringify(json));
 
 		if (json.type == 'offer' && this.onCreateOffer) {
 			this.onCreateOffer(json.sdp);
@@ -46,6 +47,8 @@
 	* Push a message down to native code
 	*/
 	/* private */ function nativeCall(plugin, msg, data) {
+	    dlog("nativeCall:" + msg);
+	    dlog("nativeCall (data):" + data);
 		if (plugin.isRunning){
 			plugin.element.pushToNative(msg, typeof data === 'object' ? JSON.stringify(data) : data);
 		}
@@ -86,6 +89,7 @@
 		setEventHandler(this, activexElement.id, nativeEventHandler);
 		this.remoteId = null;
 		this.isRunning = false;
+		this.readyState = 0;
 	}
 
 	/*
@@ -179,6 +183,7 @@
 	* - blocks and must be run from setTimeout (bug in our message loop)
 	*/
 	RTCPlugin.prototype.run = function () {
+        
 		if (!this.isRunning) {
 			this.isRunning = true;
 			this.element.run();
