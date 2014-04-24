@@ -34,6 +34,7 @@
 //#include <cctype>
 #include "talk/app/webrtc/videosourceinterface.h"
 #include "talk/app/webrtc/mediaconstraintsinterface.h"
+#include "talk/base/win32socketserver.h"
 #include "talk/base/common.h"
 #include "talk/base/json.h"
 #include "talk/base/logging.h"
@@ -61,17 +62,14 @@ const std::string gettime() {
 class DummySetSessionDescriptionObserver
 	: public webrtc::SetSessionDescriptionObserver {
 public:
-	static DummySetSessionDescriptionObserver* Create()
-	{
+	static DummySetSessionDescriptionObserver* Create()	{
 		return
 			new talk_base::RefCountedObject<DummySetSessionDescriptionObserver>();
 	}
-	virtual void OnSuccess()
-	{
+	virtual void OnSuccess() {
 		LOG(INFO) << __FUNCTION__;
 	}
-	virtual void OnFailure(const std::string& error)
-	{
+	virtual void OnFailure(const std::string& error) {
 		LOG(INFO) << __FUNCTION__ << " " << error;
 	}
 
@@ -82,10 +80,13 @@ protected:
 	}
 };
 
+
 Conductor::Conductor(MainWindow* main_wnd)
 	: mainWindow_(main_wnd) {
 	main_wnd->RegisterObserver(this);
 	SetAllowDtlsSctpDataChannels();
+
+
 }
 
 Conductor::~Conductor() {
@@ -111,8 +112,7 @@ void Conductor::ProcessOffer(std::string remotesdp)	{
 }
 
 void Conductor::Hangup() {
-	if (peer_connection_.get())
-	{
+	if (peer_connection_.get()) {
 
 		DeletePeerConnection();
 	}
@@ -165,6 +165,7 @@ bool Conductor::InitializePeerConnection() {
 
 	Json::Reader reader;
 	Json::Value jice;
+
 	if (iceCandidatesFromSS_.length() > 0 && !reader.parse(iceCandidatesFromSS_, jice)) {
 		LOG(WARNING) << "Received unknown message. " << iceCandidatesFromSS_;
 		return false;
@@ -216,10 +217,6 @@ void Conductor::DeletePeerConnection() {
 
 void Conductor::EnsureStreamingUI() {
 	ASSERT(peer_connection_.get() != NULL);
-	if (mainWindow_->IsWindow()) {
-//		if (mainWindow_->current_ui() != MainWindow::STREAMING)
-//			mainWindow_->SwitchToStreamingUI();
-	}
 }
 
 //
@@ -277,9 +274,6 @@ void Conductor::OnDisconnected() {
 
 void Conductor::OnPeerConnected(int id, const std::string& name) {
 	LOG(INFO) << __FUNCTION__;
-	// Refresh the list if we're showing it.
-//	if (mainWindow_->current_ui() == MainWindow::LIST_PEERS)
-//		mainWindow_->SwitchToPeerList(peerConnectionClient_->peers());
 }
 
 void Conductor::OnPeerDisconnected(int id)
@@ -428,74 +422,69 @@ void Conductor::AddStreams() {
 
 void Conductor::UIThreadCallback(int msg_id, void* data) {
 	std::string* msg;
-	switch (msg_id)
-	{
-	case PEER_CONNECTION_CLOSED:
-		LOG(INFO) << "PEER_CONNECTION_CLOSED";
-		DeletePeerConnection();
+	switch (msg_id)	{
 
-		ASSERT(active_streams_.empty());
+		case PEER_CONNECTION_CLOSED:
+			LOG(INFO) << "PEER_CONNECTION_CLOSED";
+			DeletePeerConnection();
+			ASSERT(active_streams_.empty());
+			break;
 
-		if (mainWindow_->IsWindow()) {
-		}
-		else {
-			//DisconnectFromServer();
-		}
-		break;
-
-	case SEND_MESSAGE_TO_BROWSER:
-		msg = reinterpret_cast<std::string*>(data);
-		javascriptCallback_->SendToBrowser(*msg);
-		LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
-		delete msg;
-		msg = NULL;
-		break;
-
-	case SEND_MESSAGE_TO_PEER:
-		LOG(INFO) << "SEND_MESSAGE_TO_PEER";
-		msg = reinterpret_cast<std::string*>(data);
-		if (msg) {
-			// For convenience, we always run the message through the queue.
-			// This way we can be sure that messages are sent to the server
-			// in the same order they were signaled without much hassle.
-			pending_messages_.push_back(msg);
-		}
-
-		if (!pending_messages_.empty()) {
-			msg = pending_messages_.front();
-			pending_messages_.pop_front();
+		case SEND_MESSAGE_TO_BROWSER:
+			msg = reinterpret_cast<std::string*>(data);
+			javascriptCallback_->SendToBrowser(*msg);
+			LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
 			delete msg;
+			msg = NULL;
+			break;
+
+		case SEND_MESSAGE_TO_PEER:
+			LOG(INFO) << "SEND_MESSAGE_TO_PEER";
+			msg = reinterpret_cast<std::string*>(data);
+			if (msg) {
+				// For convenience, we always run the message through the queue.
+				// This way we can be sure that messages are sent to the server
+				// in the same order they were signaled without much hassle.
+				pending_messages_.push_back(msg);
+			}
+
+			if (!pending_messages_.empty()) {
+				msg = pending_messages_.front();
+				pending_messages_.pop_front();
+				delete msg;
+			}
+
+			break;
+
+		case PEER_CONNECTION_ERROR:
+			mainWindow_->MessageBox("Error", "an unknown error occurred", true);
+			break;
+
+		case NEW_STREAM_ADDED: {
+
+			webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
+			webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
+			// Only render the first track.
+
+			if (!tracks.empty()) {
+				webrtc::VideoTrackInterface* track = tracks[0];
+				mainWindow_->StartRemoteRenderer(track);
+			}
+			stream->Release();
+
+			break;
 		}
 
-		break;
-
-	case PEER_CONNECTION_ERROR:
-		mainWindow_->MessageBox("Error", "an unknown error occurred", true);
-		break;
-
-	case NEW_STREAM_ADDED: {
-		webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
-		webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
-		// Only render the first track.
-		if (!tracks.empty())
-		{
-			webrtc::VideoTrackInterface* track = tracks[0];
-			mainWindow_->StartRemoteRenderer(track);
+		case STREAM_REMOVED: {
+			// Remote peer stopped sending a stream.
+			webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>( data);
+			stream->Release();
+			break;
 		}
-		stream->Release();
-		break;
-	}
 
-	case STREAM_REMOVED: {
-		// Remote peer stopped sending a stream.
-		webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>( data);
-		stream->Release();
-		break;
-	}
-
-	default:
-		ASSERT(false);
-		break;
+		default:
+			ASSERT(false);
+			break;
 	}
 }
 
@@ -520,9 +509,9 @@ void Conductor::OnFailure(const std::string& error) {
 
 // inherited generic callback from CreateSessionDescriptionObserver (returns SDP and candidates)
 void Conductor::PostToBrowser(const std::string& json_object) {
+
 	std::string* json = new std::string(json_object);
 	LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
-
 
 	// Threading issues present here, so we are trying out a direct call to javascript... fails as well  
 	mainWindow_->QueueUIThreadCallback(SEND_MESSAGE_TO_BROWSER, json);

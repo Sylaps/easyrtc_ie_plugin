@@ -94,7 +94,7 @@ public:
 	MainWnd();
 	~MainWnd();
 
-	bool Create(HWND hwnd);
+	bool Create(HWND, DWORD);
 	bool Destroy();
 
 	//HACK
@@ -114,25 +114,22 @@ public:
 
 	virtual void QueueUIThreadCallback(int msg_id, void* data);
 
-	HWND handle() const
-	{
+	HWND handle() const {
 		return wnd_;
 	}
 
-	class VideoRenderer : public webrtc::VideoRendererInterface
-	{
+	class VideoRenderer : public webrtc::VideoRendererInterface	{
+
 	public:
-		VideoRenderer(HWND wnd, int width, int height,
-			webrtc::VideoTrackInterface* track_to_render);
+		VideoRenderer(HWND wnd, int width, int height, webrtc::VideoTrackInterface* track_to_render);
+
 		virtual ~VideoRenderer();
 
-		void Lock()
-		{
+		void Lock() {
 			::EnterCriticalSection(&buffer_lock_);
 		}
 
-		void Unlock()
-		{
+		void Unlock() {
 			::LeaveCriticalSection(&buffer_lock_);
 		}
 
@@ -140,18 +137,15 @@ public:
 		virtual void SetSize(int width, int height);
 		virtual void RenderFrame(const cricket::VideoFrame* frame);
 
-		const BITMAPINFO& bmi() const
-		{
+		const BITMAPINFO& bmi() const {
 			return bmi_;
 		}
-		const uint8* image() const
-		{
+		const uint8* image() const {
 			return image_.get();
 		}
 
 	protected:
-		enum
-		{
+		enum {
 			SET_SIZE,
 			RENDER_FRAME,
 		};
@@ -166,15 +160,12 @@ public:
 	// A little helper class to make sure we always to proper locking and
 	// unlocking when working with VideoRenderer buffers.
 	template <typename T>
-	class AutoLock
-	{
+	class AutoLock {
 	public:
-		explicit AutoLock(T* obj) : obj_(obj)
-		{
+		explicit AutoLock(T* obj) : obj_(obj) {
 			obj_->Lock();
 		}
-		~AutoLock()
-		{
+		~AutoLock() {
 			obj_->Unlock();
 		}
 	protected:

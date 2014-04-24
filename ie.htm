@@ -21,7 +21,7 @@
 	var myrtcid
 	,   rtcPlugin
 	, 	iceServers
-	, 	socket
+	,   socket
 	,   element
 	,   setupCallbacks;
 
@@ -44,8 +44,8 @@
 	    //socket = io.connect('dev.easyrtc.com');
 		socket = io.connect('192.168.1.16:8080');
 
-		var auth = { 
-			"msgType" : "authenticate", 
+		var auth = {
+		    "msgType": "authenticate",
 			"msgData" : {
 				"apiVersion" : "1.0.10",
 				"applicationName" : "easyrtc.audioVideo" 
@@ -122,8 +122,8 @@
 								sdpMid : json.msgData.id, 
 								sdpMLineIndex : json.msgData.label
 							};
-							
-							rtcPlugin.handleCandidate(cand);
+
+							rtcPlugin.handleCandidate("remoteId", cand);
 
 							break;
 
@@ -149,8 +149,8 @@
 
 							break;
 						
-						case 'hangup':
-							rtcPlugin.close();
+						    case 'hangup':
+						        rtcPlugin.hangUp();
 							break;
 
 						default:
@@ -212,8 +212,8 @@
 		}
 		else {
 			var keys = Object.keys(roomData["default"].clientListDelta.removeClient);
-			document.getElementById(keys[0]).style.display='none';
-			rtcPlugin.close();
+			document.getElementById(keys[0]).style.display = 'none';
+			rtcPlugin.hangUp();
 		}
 	}
 
@@ -235,7 +235,7 @@
 	}
 
 	function hangup() {
-		rtcPlugin.close();
+	    rtcPlugin.hangUp();
 		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : rtcPlugin.remoteId } , function() { 
 			dlog('hangup()');
 		});
@@ -268,8 +268,12 @@
 		element.width = 400;
 		element.height = 300;
 
-		rtcPlugin = new RTCPlugin(element);
-		rtcPlugin.run();
+		rtcPlugin = new RTCPlugin(element, function win() {
+		    authenticate();
+		}, function fail() {
+		    alert("Could not start plugin.");
+		});
+
     }
 
 	function dlog(text) {
@@ -278,17 +282,7 @@
 
 	function readyStateChange() {
 	    if (videoElement.readyState === 4) {
-	        /*if (confirm('Would you like to enable video sharing?')) {
-    	        run();
-	        } else {
-	            dlog("Unable to load, user denied access to video devices.");
-	        }**/
-	        setTimeout(function () {
-	            run();
-	            setTimeout(function () {
-	                authenticate();
-	            }, 0);
-	        }, 0);
+	        run();
 	    }
 	}
     </script>

@@ -93,20 +93,18 @@ MainWnd::~MainWnd() {
 }
 
 //TODO: move this into the class plz
-talk_base::Win32Thread w32_thread;
 
-bool MainWnd::Create(HWND hwnd) {
+bool MainWnd::Create(HWND hwnd, DWORD ui_tid_) {
 	ASSERT(wnd_ == NULL);
 
-	ui_thread_id_ = ::GetCurrentThreadId();
+	ui_thread_id_ = ui_thread_id_;
 	wnd_ = hwnd;
-
+	/*
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	if (!hr) {
 		LOG(INFO) << "CoInitializeEx failed with COINIT_MULTITHREADED";
 	}
-	talk_base::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
-
+*/
 	::SendMessage(wnd_, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()), TRUE);
 
 	return wnd_ != NULL;
@@ -159,9 +157,12 @@ void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
 	
 //	BOOL b = ::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
 
-	LRESULT b = ::SendMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	LRESULT b = ::SendNotifyMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
 	if (b) {
 		LOG(INFO) << __FUNCTION__ << " failed to post to thread: " << ui_thread_id_;
+	}
+	else {
+		LOG(INFO) << __FUNCTION__ << " posted to thread : " << ui_thread_id_;
 	}
 }
 

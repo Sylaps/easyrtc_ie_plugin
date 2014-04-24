@@ -83,6 +83,8 @@ void logtofile() {
 #endif
 
 
+talk_base::Win32Thread w32_thread;
+
 // glorified Ctor 
 IFACEMETHODIMP CWebRTCAPI::run() {
 
@@ -94,6 +96,13 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 	talk_base::EnsureWinsockInit();
 	
 	DWORD ui_thread_id_ = ::GetCurrentThreadId();
+	
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (hr) {
+		LOG(INFO) << "Coinitialze failed +++++++++++++++";
+	}
+
+	talk_base::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
 
 	controlHwnd = m_hWnd;
 
@@ -103,7 +112,7 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 	
 	conductor_->SetJSCallback(this);
 
-	if (controlHwnd == NULL || !mainWindow.Create(controlHwnd))	{
+	if (controlHwnd == NULL || !mainWindow.Create(controlHwnd, ui_thread_id_))	{
 		showDebugAlert(_T("Error in my code :("), _T("hwnd is null!"));
 		return S_OK;
 	}
