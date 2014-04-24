@@ -19,7 +19,7 @@
 * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
 * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+* OR BUSINESS INTEuRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -33,20 +33,20 @@
 
 #include "talk/base/common.h"
 #include "talk/base/logging.h"
+#include "talk/base/win32socketserver.h"
 #include "defaults.h"
 
 ATOM MainWnd::wnd_class_ = 0;
 const wchar_t MainWnd::kClassName[] = L"WebRTC_MainWnd";
 
-namespace
-{
+namespace {
 	const char kConnecting[] = "Connecting... ";
 	const char kNoVideoStreams[] = "(no video streams either way)";
 	const char kNoIncomingStream[] = "(no incoming video)";
 
 	void CalculateWindowSizeForText(HWND wnd, const wchar_t* text,
-		size_t* width, size_t* height)
-	{
+		size_t* width, size_t* height) {
+
 		HDC dc = ::GetDC(wnd);
 		RECT text_rc = { 0 };
 		::DrawText(dc, text, -1, &text_rc, DT_CALCRECT | DT_SINGLELINE);
@@ -63,21 +63,18 @@ namespace
 			(client.bottom - client.top);
 	}
 
-	HFONT GetDefaultFont()
-	{
+	HFONT GetDefaultFont() {
 		static HFONT font = reinterpret_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
 		return font;
 	}
 
-	std::string GetWindowText(HWND wnd)
-	{
+	std::string GetWindowText(HWND wnd) {
 		char text[MAX_PATH] = { 0 };
 		::GetWindowTextA(wnd, &text[0], ARRAYSIZE(text));
 		return text;
 	}
 
-	void AddListBoxItem(HWND listbox, const std::string& str, LPARAM item_data)
-	{
+	void AddListBoxItem(HWND listbox, const std::string& str, LPARAM item_data) {
 		LRESULT index = ::SendMessageA(listbox, LB_ADDSTRING, 0,
 			reinterpret_cast<LPARAM>(str.c_str()));
 		::SendMessageA(listbox, LB_SETITEMDATA, index, item_data);
@@ -88,167 +85,95 @@ namespace
 MainWnd::MainWnd()
 	: 
 //ui_(CONNECT_TO_SERVER), 
-	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL)
-{
+	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL) {
 }
 
-MainWnd::~MainWnd()
-{
+MainWnd::~MainWnd() {
 	ASSERT(!IsWindow());
 }
 
-bool MainWnd::Create(HWND hwnd)
-{
-	ASSERT(wnd_ == NULL);
-	if (!RegisterWindowClass())
-		return false;
+//TODO: move this into the class plz
 
-	ui_thread_id_ = ::GetCurrentThreadId();
+bool MainWnd::Create(HWND hwnd, DWORD ui_tid_) {
+	ASSERT(wnd_ == NULL);
+
+	ui_thread_id_ = ui_thread_id_;
 	wnd_ = hwnd;
 	/*
-	::CreateWindowExW(WS_EX_OVERLAPPEDWINDOW, kClassName, L"WebRTC",
-	WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN,
-	CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-	NULL, NULL, GetModuleHandle(NULL), this);
-	*/
-
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (!hr) {
+		LOG(INFO) << "CoInitializeEx failed with COINIT_MULTITHREADED";
+	}
+*/
 	::SendMessage(wnd_, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()), TRUE);
-
-//	CreateChildWindows();
-	SwitchToConnectUI();
 
 	return wnd_ != NULL;
 }
 
-bool MainWnd::Destroy()
-{
+bool MainWnd::Destroy() {
 	BOOL ret = FALSE;
-	if (IsWindow())
-	{
+	if (IsWindow()) {
 		ret = ::DestroyWindow(wnd_);
 	}
 
 	return ret != FALSE;
 }
 
-void MainWnd::RegisterObserver(MainWndCallback* callback)
-{
+void MainWnd::RegisterObserver(MainWndCallback* callback) {
 	callback_ = callback;
 }
 
-bool MainWnd::IsWindow()
-{
+bool MainWnd::IsWindow() {
 	return wnd_ && ::IsWindow(wnd_) != FALSE;
 }
 
-bool MainWnd::PreTranslateMessage(MSG* msg)
-{
-	bool ret = false;
-	if (msg->message == WM_CHAR)
-	{
-		if (msg->wParam == VK_TAB)
-		{
-//			HandleTabbing();
-			ret = true;
-		}
-		else if (msg->wParam == VK_RETURN)
-		{
-//			OnDefaultAction();
-			ret = true;
-		}
-		else if (msg->wParam == VK_ESCAPE)
-		{
-//			if (callback_)
-//			{
-//				if (ui_ == STREAMING)
-//					callback_->DisconnectFromCurrentPeer();
-//				else
-//					callback_->DisconnectFromServer();
-//			}
-		}
-	}
-	else if (msg->hwnd == NULL && msg->message != WM_TIMER)
-	{
-		if (msg->message == UI_THREAD_CALLBACK)
-		{
-			callback_->UIThreadCallback(static_cast<int>(msg->wParam), reinterpret_cast<void*>(msg->lParam));
-			ret = true;
-		}
-	}
 
-	return ret;
-}
 
-void MainWnd::SwitchToConnectUI()
-{
-//	ASSERT(IsWindow());
-//	LayoutPeerListUI(false);
-//	ui_ = CONNECT_TO_SERVER;
-//	LayoutConnectUI(true);
-//	::SetFocus(edit1_);
-}
-
-	/*
-void MainWnd::SwitchToPeerList(const Peers& peers)
-{
-	LayoutConnectUI(false);
-
-	::SendMessage(listbox_, LB_RESETCONTENT, 0, 0);
-
-	AddListBoxItem(listbox_, "List of currently connected peers:", -1);
-	Peers::const_iterator i = peers.begin();
-	for (; i != peers.end(); ++i)
-		AddListBoxItem(listbox_, i->second.c_str(), i->first);
-
-	ui_ = LIST_PEERS;
-	LayoutPeerListUI(true);
-	::SetFocus(listbox_);
-}
-	*/
-
-void MainWnd::SwitchToStreamingUI()
-{
-//	LayoutConnectUI(false);
-//	LayoutPeerListUI(false);
-//	ui_ = STREAMING;
-}
-
-void MainWnd::MessageBox(const char* caption, const char* text, bool is_error)
-{
+void MainWnd::MessageBox(const char* caption, const char* text, bool is_error) {
 	DWORD flags = MB_OK;
 	if (is_error)
 		flags |= MB_ICONERROR;
-
+	
 	::MessageBoxA(handle(), text, caption, flags);
 }
 
-void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video)
-{
+void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
 	local_renderer_.reset(new VideoRenderer(handle(), 1, 1, local_video));
 }
 
-void MainWnd::StopLocalRenderer()
-{
+void MainWnd::StopLocalRenderer() {
 	local_renderer_.reset();
 }
 
-void MainWnd::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video)
-{
+void MainWnd::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
 	remote_renderer_.reset(new VideoRenderer(handle(), 1, 1, remote_video));
 }
 
-void MainWnd::StopRemoteRenderer()
-{
+void MainWnd::StopRemoteRenderer() {
 	remote_renderer_.reset();
 }
 
-void MainWnd::QueueUIThreadCallback(int msg_id, void* data)
-{
-	::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
+	
+//	BOOL b = ::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+
+	LRESULT b = ::SendNotifyMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	if (b) {
+		LOG(INFO) << __FUNCTION__ << " failed to post to thread: " << ui_thread_id_;
+	}
+	else {
+		LOG(INFO) << __FUNCTION__ << " posted to thread : " << ui_thread_id_;
+	}
 }
 
-void MainWnd::OnPaint()
-{
+void MainWnd::ProcessUICallback(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	if (uMsg == UI_THREAD_CALLBACK)	{
+		callback_->UIThreadCallback(static_cast<int>(wParam), reinterpret_cast<void*>(lParam));
+	}
+}
+
+void MainWnd::OnPaint() {
+
 	PAINTSTRUCT ps;
 	::BeginPaint(handle(), &ps);
 
@@ -258,8 +183,8 @@ void MainWnd::OnPaint()
 	VideoRenderer* local_renderer = local_renderer_.get();
 	VideoRenderer* remote_renderer = remote_renderer_.get();
 
-	if (remote_renderer && local_renderer)
-	{
+	if (remote_renderer && local_renderer) {
+
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 		AutoLock<VideoRenderer> remote_lock(remote_renderer);
 
@@ -268,8 +193,8 @@ void MainWnd::OnPaint()
 		int rvwidth = rvbmi.bmiHeader.biWidth;
 
 		const uint8* rvimage = remote_renderer->image();
-		if (rvimage != NULL)
-		{
+
+		if (rvimage != NULL) {
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
@@ -287,8 +212,7 @@ void MainWnd::OnPaint()
 			// float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
 
 			HDC all_dc[] = { ps.hdc, dc_mem };
-			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i)
-			{
+			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i) {
 				SetMapMode(all_dc[i], MM_ISOTROPIC);
 				SetWindowExtEx(all_dc[i], logical_area.x, logical_area.y, NULL);
 				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
@@ -323,15 +247,13 @@ void MainWnd::OnPaint()
 			StretchDIBits(dc_mem, x, y, rvwidth, rvheight,
 				0, 0, rvwidth, rvheight, rvimage, &rvbmi, DIB_RGB_COLORS, SRCCOPY);
 
-			if ((rc.right - rc.left) > 300) //  && (rc.bottom - rc.top) > 200)
-			{
+			if ((rc.right - rc.left) > 300) {
 				const BITMAPINFO& lvbmi = local_renderer->bmi();
 				const uint8* lvimage = local_renderer->image();
 				// int thumb_width = bmi.bmiHeader.biWidth / 2;
 				// int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
 
-				if ((rc.right - rc.left) > 399) 
-				{
+				if ((rc.right - rc.left) > 399)	{
 					thumb_width = 140; //  160; 
 					thumb_height = 105; //  120;
 				}
@@ -351,8 +273,7 @@ void MainWnd::OnPaint()
 			::DeleteObject(bmp_mem);
 			::DeleteDC(dc_mem);
 		}
-		else
-		{
+		else {
 			// We're still waiting for the video stream to be initialized.
 			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
 			::FillRect(ps.hdc, &rc, brush);
@@ -363,12 +284,10 @@ void MainWnd::OnPaint()
 			::SetBkMode(ps.hdc, TRANSPARENT);
 
 			std::string text(kConnecting);
-			if (!local_renderer->image())
-			{
+			if (!local_renderer->image()) {
 				text += kNoVideoStreams;
 			}
-			else
-			{
+			else {
 				text += kNoIncomingStream;
 			}
 			::DrawTextA(ps.hdc, text.c_str(), -1, &rc,
@@ -376,8 +295,7 @@ void MainWnd::OnPaint()
 			::SelectObject(ps.hdc, old_font);
 		}
 	}
-	else if (local_renderer && false)
-	{
+	else if (local_renderer && false) {
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 
 		const BITMAPINFO& bmi = local_renderer->bmi();
@@ -385,8 +303,9 @@ void MainWnd::OnPaint()
 		int width = bmi.bmiHeader.biWidth;
 
 		const uint8* image = local_renderer->image();
-		if (image != NULL)
-		{
+
+		if (image != NULL) {
+
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
@@ -425,8 +344,7 @@ void MainWnd::OnPaint()
 			::DeleteDC(dc_mem);
 		}
 	}
-	else
-	{
+	else {
 		HBRUSH brush = ::CreateSolidBrush(::GetSysColor(COLOR_WINDOW));
 		::FillRect(ps.hdc, &rc, brush);
 		::DeleteObject(brush);
@@ -438,320 +356,16 @@ void MainWnd::OnPaint()
 	::EndPaint(handle(), &ps);
 }
 
-void MainWnd::OnDestroyed()
-{
+void MainWnd::OnDestroyed() {
 	PostQuitMessage(0);
 }
 
-/*
-void MainWnd::OnDefaultAction()
-{
-	if (!callback_)
-		return;
-	if (ui_ == CONNECT_TO_SERVER)
-	{
-//		std::string server(GetWindowText(edit1_));
-//		std::string port_str(GetWindowText(edit2_));
-//		int port = port_str.length() ? atoi(port_str.c_str()) : 0;
-//		callback_->StartLogin(server, port);
-	}
-	else if (ui_ == LIST_PEERS)
-	{
-//		LRESULT sel = ::SendMessage(listbox_, LB_GETCURSEL, 0, 0);
-//		if (sel != LB_ERR)
-//		{
-//			LRESULT peer_id = ::SendMessage(listbox_, LB_GETITEMDATA, sel, 0);
-//			if (peer_id != -1 && callback_)
-//			{
-//				callback_->ConnectToPeer(peer_id);
-//			}
-//		}
-	}
-	else
-	{
-		MessageBoxA(wnd_, "OK!", "Yeah", MB_OK);
-	}
-}
-*/
-
-bool MainWnd::OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result)
-{
-	switch (msg)
-	{
-	case WM_ERASEBKGND:
-		*result = TRUE;
-		return true;
-
-	case WM_PAINT:
-		OnPaint();
-		return true;
-
-	case WM_SETFOCUS:
-//		if (ui_ == CONNECT_TO_SERVER)
-		{
-//			SetFocus(edit1_);
-		}
-//		else if (ui_ == LIST_PEERS)
-		{
-//			SetFocus(listbox_);
-		}
-		return true;
-
-	case WM_SIZE:
-//		if (ui_ == CONNECT_TO_SERVER)
-		{
-//			LayoutConnectUI(true);
-		}
-//		else if (ui_ == LIST_PEERS)
-		{
-//			LayoutPeerListUI(true);
-		}
-		break;
-
-	case WM_CTLCOLORSTATIC:
-		*result = reinterpret_cast<LRESULT>(GetSysColorBrush(COLOR_WINDOW));
-		return true;
-
-	case WM_COMMAND:
-		/*
-		if (button_ == reinterpret_cast<HWND>(lp))
-		{
-			if (BN_CLICKED == HIWORD(wp))
-				OnDefaultAction();
-		}
-		else if (listbox_ == reinterpret_cast<HWND>(lp))
-		{
-			if (LBN_DBLCLK == HIWORD(wp))
-			{
-				OnDefaultAction();
-			}
-		}
-		*/
-		return true;
-
-	case WM_CLOSE:
-		if (callback_)
-			callback_->Close();
-		break;
-	}
-	return false;
-}
-
-// static
-LRESULT CALLBACK MainWnd::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-{
-	MainWnd* me = reinterpret_cast<MainWnd*>(
-		::GetWindowLongPtr(hwnd, GWLP_USERDATA));
-	if (!me && WM_CREATE == msg)
-	{
-		CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lp);
-		me = reinterpret_cast<MainWnd*>(cs->lpCreateParams);
-		me->wnd_ = hwnd;
-		::SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(me));
-	}
-
-	LRESULT result = 0;
-	if (me)
-	{
-		void* prev_nested_msg = me->nested_msg_;
-		me->nested_msg_ = &msg;
-
-		bool handled = me->OnMessage(msg, wp, lp, &result);
-		if (WM_NCDESTROY == msg)
-		{
-			me->destroyed_ = true;
-		}
-		else if (!handled)
-		{
-			result = ::DefWindowProc(hwnd, msg, wp, lp);
-		}
-
-		if (me->destroyed_ && prev_nested_msg == NULL)
-		{
-			me->OnDestroyed();
-			me->wnd_ = NULL;
-			me->destroyed_ = false;
-		}
-
-		me->nested_msg_ = prev_nested_msg;
-	}
-	else
-	{
-		result = ::DefWindowProc(hwnd, msg, wp, lp);
-	}
-
-	return result;
-}
-
-// static
-bool MainWnd::RegisterWindowClass()
-{
-	if (wnd_class_)
-		return true;
-
-	WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-	wcex.style = CS_DBLCLKS;
-	wcex.hInstance = GetModuleHandle(NULL);
-	wcex.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-	wcex.hCursor = ::LoadCursor(NULL, IDC_ARROW);
-	wcex.lpfnWndProc = &WndProc;
-	wcex.lpszClassName = kClassName;
-	wnd_class_ = ::RegisterClassEx(&wcex);
-	ASSERT(wnd_class_ != 0);
-	return wnd_class_ != 0;
-}
-
-/*
-void MainWnd::CreateChildWindow(HWND* wnd, MainWnd::ChildWindowID id,
-	const wchar_t* class_name, DWORD control_style, DWORD ex_style)
-{
-	if (::IsWindow(*wnd))
-		return;
-
-	// Child windows are invisible at first, and shown after being resized.
-	DWORD style = WS_CHILD | control_style;
-	*wnd = ::CreateWindowEx(ex_style, class_name, L"", style,
-		100, 100, 100, 100, wnd_,
-		reinterpret_cast<HMENU>(id),
-		GetModuleHandle(NULL), NULL);
-	ASSERT(::IsWindow(*wnd) != FALSE);
-	::SendMessage(*wnd, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()),
-		TRUE);
-}
-*/
-
-/*
-void MainWnd::CreateChildWindows()
-{
-	// Create the child windows in tab order.
-//	CreateChildWindow(&label1_, LABEL1_ID, L"Static", ES_CENTER | ES_READONLY, 0);
-//	CreateChildWindow(&edit1_, EDIT_ID, L"Edit", ES_LEFT | ES_NOHIDESEL | WS_TABSTOP, WS_EX_CLIENTEDGE);
-//	CreateChildWindow(&label2_, LABEL2_ID, L"Static", ES_CENTER | ES_READONLY, 0);
-//	CreateChildWindow(&edit2_, EDIT_ID, L"Edit", ES_LEFT | ES_NOHIDESEL | WS_TABSTOP, WS_EX_CLIENTEDGE);
-//	CreateChildWindow(&button_, BUTTON_ID, L"Button", BS_CENTER | WS_TABSTOP, 0);
-
-//	CreateChildWindow(&listbox_, LISTBOX_ID, L"ListBox", LBS_HASSTRINGS | LBS_NOTIFY, WS_EX_CLIENTEDGE);
-
-//	::SetWindowTextA(edit1_, GetDefaultServerName().c_str());
-//	::SetWindowTextA(edit2_, "8888");
-}
-*/
-
-// void MainWnd::LayoutConnectUI(bool show)
-// {
-/*
-	struct Windows
-	{
-		HWND wnd;
-		const wchar_t* text;
-		size_t width;
-		size_t height;
-	} windows[] = {
-		{ label1_, L"Server" },
-		{ edit1_, L"XXXyyyYYYgggXXXyyyYYYggg" },
-		{ label2_, L":" },
-		{ edit2_, L"XyXyX" },
-		{ button_, L"Connect" },
-	};
-
-	if (show)
-	{
-		const size_t kSeparator = 5;
-		size_t total_width = (ARRAYSIZE(windows) - 1) * kSeparator;
-
-		for (size_t i = 0; i < ARRAYSIZE(windows); ++i)
-		{
-			CalculateWindowSizeForText(windows[i].wnd, windows[i].text,
-				&windows[i].width, &windows[i].height);
-			total_width += windows[i].width;
-		}
-
-		RECT rc;
-		::GetClientRect(wnd_, &rc);
-		size_t x = (rc.right / 2) - (total_width / 2);
-		size_t y = rc.bottom / 2;
-		for (size_t i = 0; i < ARRAYSIZE(windows); ++i)
-		{
-			size_t top = y - (windows[i].height / 2);
-			::MoveWindow(windows[i].wnd, static_cast<int>(x), static_cast<int>(top),
-				static_cast<int>(windows[i].width),
-				static_cast<int>(windows[i].height),
-				TRUE);
-			x += kSeparator + windows[i].width;
-			if (windows[i].text[0] != 'X')
-				::SetWindowText(windows[i].wnd, windows[i].text);
-			::ShowWindow(windows[i].wnd, SW_SHOWNA);
-		}
-	}
-	else
-	{
-		for (size_t i = 0; i < ARRAYSIZE(windows); ++i)
-		{
-			::ShowWindow(windows[i].wnd, SW_HIDE);
-		}
-	}
-*/
-// }
-
-/*
-void MainWnd::LayoutPeerListUI(bool show)
-{
-	if (show)
-	{
-		RECT rc;
-//		::GetClientRect(wnd_, &rc);
-//		::MoveWindow(listbox_, 0, 0, rc.right, rc.bottom, TRUE);
-//		::ShowWindow(listbox_, SW_SHOWNA);
-	}
-	else
-	{
-//		::ShowWindow(listbox_, SW_HIDE);
-		InvalidateRect(wnd_, NULL, TRUE);
-	}
-}
-*/
-
-/*
-void MainWnd::HandleTabbing()
-{
-	bool shift = ((::GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0);
-	UINT next_cmd = shift ? GW_HWNDPREV : GW_HWNDNEXT;
-	UINT loop_around_cmd = shift ? GW_HWNDLAST : GW_HWNDFIRST;
-	HWND focus = GetFocus(), next;
-	do
-	{
-		next = ::GetWindow(focus, next_cmd);
-		if (IsWindowVisible(next) &&
-			(GetWindowLong(next, GWL_STYLE) & WS_TABSTOP))
-		{
-			break;
-		}
-
-		if (!next)
-		{
-			next = ::GetWindow(focus, loop_around_cmd);
-			if (IsWindowVisible(next) &&
-				(GetWindowLong(next, GWL_STYLE) & WS_TABSTOP))
-			{
-				break;
-			}
-		}
-		focus = next;
-	}
-	while (true);
-	::SetFocus(next);
-}
-*/
-
-//
-// MainWnd::VideoRenderer
-//
 
 MainWnd::VideoRenderer::VideoRenderer(
 	HWND wnd, int width, int height,
 	webrtc::VideoTrackInterface* track_to_render)
-	: wnd_(wnd), rendered_track_(track_to_render)
-{
+	: wnd_(wnd), rendered_track_(track_to_render) {
+
 	::InitializeCriticalSection(&buffer_lock_);
 	ZeroMemory(&bmi_, sizeof(bmi_));
 	bmi_.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -760,19 +374,16 @@ MainWnd::VideoRenderer::VideoRenderer(
 	bmi_.bmiHeader.biCompression = BI_RGB;
 	bmi_.bmiHeader.biWidth = width;
 	bmi_.bmiHeader.biHeight = -height;
-	bmi_.bmiHeader.biSizeImage = width * height *
-		(bmi_.bmiHeader.biBitCount >> 3);
+	bmi_.bmiHeader.biSizeImage = width * height * (bmi_.bmiHeader.biBitCount >> 3);
 	rendered_track_->AddRenderer(this);
 }
 
-MainWnd::VideoRenderer::~VideoRenderer()
-{
+MainWnd::VideoRenderer::~VideoRenderer() {
 	rendered_track_->RemoveRenderer(this);
 	::DeleteCriticalSection(&buffer_lock_);
 }
 
-void MainWnd::VideoRenderer::SetSize(int width, int height)
-{
+void MainWnd::VideoRenderer::SetSize(int width, int height) {
 	AutoLock<VideoRenderer> lock(this);
 
 	bmi_.bmiHeader.biWidth = width;
@@ -782,20 +393,19 @@ void MainWnd::VideoRenderer::SetSize(int width, int height)
 	image_.reset(new uint8[bmi_.bmiHeader.biSizeImage]);
 }
 
-void MainWnd::VideoRenderer::RenderFrame(const cricket::VideoFrame* frame)
-{
+void MainWnd::VideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
 	if (!frame)
 		return;
 
-	{
-		AutoLock<VideoRenderer> lock(this);
+	AutoLock<VideoRenderer> lock(this);
 
-		ASSERT(image_.get() != NULL);
-		frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
-			image_.get(),
-			bmi_.bmiHeader.biSizeImage,
-			bmi_.bmiHeader.biWidth *
-			bmi_.bmiHeader.biBitCount / 8);
-	}
+	ASSERT(image_.get() != NULL);
+	frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
+		image_.get(),
+		bmi_.bmiHeader.biSizeImage,
+		bmi_.bmiHeader.biWidth *
+		bmi_.bmiHeader.biBitCount / 8);
+
 	InvalidateRect(wnd_, NULL, TRUE);
 }
+

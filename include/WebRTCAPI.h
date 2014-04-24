@@ -38,6 +38,7 @@ public:
 	CWebRTCAPI()
 	{
 		m_bWindowOnly = true;
+		conductor_ = new talk_base::RefCountedObject<Conductor>(&mainWindow);
 	}
 
 	BSTR Convert(const std::string& s)
@@ -97,12 +98,13 @@ END_CONNECTION_POINT_MAP()
 BEGIN_MSG_MAP(CWebRTCAPI)
 	MESSAGE_HANDLER(WM_PAINT, OnPaint)
 	MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
-
-	// these 2 lines seem to have no effect:
-	//CHAIN_MSG_MAP(CComControl<CWebRTCAPI>)
-	//DEFAULT_REFLECTION_HANDLER()
-
+	MESSAGE_HANDLER(33176, OnDestroy)
+	MESSAGE_HANDLER(WM_CLOSE, OnDestroy)
 	MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+
+	// HACK: using the message loop as a thread-safe message passing structure
+	MESSAGE_HANDLER(WM_APP+1,  OnMessage)
+
 END_MSG_MAP()
 
 // Handler prototypes:
@@ -110,15 +112,12 @@ END_MSG_MAP()
 //  LRESULT NotifyHandler(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
 // ISupportsErrorInfo
-	STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid)
-	{
-		static const IID* const arr[] =
-		{
+	STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid) {
+		static const IID* const arr[] = {
 			&IID_IWebRTCAPI,
 		};
 
-		for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++)
-		{
+		for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++) {
 			if (InlineIsEqualGUID(*arr[i], riid))
 				return S_OK;
 		}
@@ -140,55 +139,33 @@ public:
 	IFACEMETHOD(hello)(BSTR *pRet);
 	IFACEMETHOD(pushToNative)(BSTR cmd, BSTR json);
 	
-/*
-	HRESULT OnDraw(ATL_DRAWINFO& di)
-	{
-		RECT& rc = *(RECT*)di.prcBounds;
-		// Set Clip region to the rectangle specified by di.prcBounds
-		HRGN hRgnOld = NULL;
-		if (GetClipRgn(di.hdcDraw, hRgnOld) != 1)
-			hRgnOld = NULL;
-		bool bSelectOldRgn = false;
-
-		HRGN hRgnNew = CreateRectRgn(rc.left, rc.top, rc.right, rc.bottom);
-
-		if (hRgnNew != NULL)
-		{
-			bSelectOldRgn = (SelectClipRgn(di.hdcDraw, hRgnNew) != ERROR);
-		}
-
-		Rectangle(di.hdcDraw, rc.left, rc.top, rc.right, rc.bottom);
-		SetTextAlign(di.hdcDraw, TA_CENTER|TA_BASELINE);
-		LPCTSTR pszText = _T("WebRTCAPI");
-
-		TextOut(di.hdcDraw,
-			(rc.left + rc.right) / 2,
-			(rc.top + rc.bottom) / 2,
-			pszText,
-			lstrlen(pszText));
-
-		if (bSelectOldRgn)
-			SelectClipRgn(di.hdcDraw, hRgnOld);
-
-		DeleteObject(hRgnNew);
-
-		return S_OK;
-	}
-*/
-	
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-	HRESULT FinalConstruct()
-	{
+	HRESULT FinalConstruct() {
 		return S_OK;
 	}
 
-	void FinalRelease()
-	{
+	void FinalRelease()	{
+
+		try {
+			conductor_->Close();
+
+			talk_base::CleanupSSL();
+
+			// causes ie to crash on close		free(conductor_);
+
+			CoUninitialize();
+		}
+		catch (std::exception& ex){
+			LOG(LS_ERROR) << "Exception on shutdown " << ex.what();
+		}
+
+		LOG(INFO) << "Destructor hit.";
 	}
 	LRESULT OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnMessage(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(WebRTCAPI), CWebRTCAPI)

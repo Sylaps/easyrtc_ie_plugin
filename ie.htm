@@ -16,23 +16,12 @@
 	<button onclick="debug()">debug</button>
 	<br>
     
-    <object id="videoElement"
-            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=400 width=0></object>
-    
-	<div id='divMe'></div>
-	<div id='divPeers'> </div>
-	<div id='divATL'> </div>
-	<div id='divSDP'> </div>
-	<pre>
-		<div id='divLog'> </div>
-	</pre>
     <script type="text/javascript">
 
 	var myrtcid
 	,   rtcPlugin
 	, 	iceServers
-	, 	socket
+	,   socket
 	,   element
 	,   setupCallbacks;
 
@@ -49,13 +38,14 @@
 
 	window.onload = function () {
 
+
 		element = document.getElementById("videoElement");
 
-		socket = io.connect('dev.easyrtc.com:80');
-		// socket = io.connect('172.16.40.108:8080');
+	    //socket = io.connect('dev.easyrtc.com');
+		socket = io.connect('192.168.1.16:8080');
 
-		var auth = { 
-			"msgType" : "authenticate", 
+		var auth = {
+		    "msgType": "authenticate",
 			"msgData" : {
 				"apiVersion" : "1.0.10",
 				"applicationName" : "easyrtc.audioVideo" 
@@ -87,7 +77,8 @@
 
 				/* Handle displaying the button to connect to other peers... */
 
-				myrtcid = message.msgData.easyrtcid;
+			    myrtcid = message.msgData.easyrtcid;
+			    document.getElementById("myid").innerHTML = "My id is: " + myrtcid;
 				addPeerButtons(message);
 				
 				iceServers = message.msgData.iceConfig.iceServers;
@@ -95,11 +86,13 @@
 
 				socket.on('easyrtcCmd', function (json) {
 
-					var msgType = json.msgType || json.msgData.type;
-					if (msgType) 
-					{
-						// cleanup sdp
-						if (json.msgData && json.msgData.sdp) {
+				    dlog("socket.on(easyrtcCmd) --> "+ JSON.stringify(json));
+
+				    var msgType = json.msgType || json.msgData.type;
+
+				    if (msgType) {
+				        // cleanup sdp
+				        if (json.msgData && json.msgData.sdp) {
 							var sdp = json.msgData.sdp;
 							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
 							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
@@ -129,8 +122,8 @@
 								sdpMid : json.msgData.id, 
 								sdpMLineIndex : json.msgData.label
 							};
-							
-							rtcPlugin.handleCandidate(cand);
+
+							rtcPlugin.handleCandidate("remoteId", cand);
 
 							break;
 
@@ -156,6 +149,7 @@
 
 							break;
 						
+
 						case 'hangup':
 							rtcPlugin.hangUp();
 							break;
@@ -219,7 +213,7 @@
 		}
 		else {
 			var keys = Object.keys(roomData["default"].clientListDelta.removeClient);
-			document.getElementById(keys[0]).style.display='none';
+			document.getElementById(keys[0]).style.display = 'none';
 			rtcPlugin.hangUp();
 		}
 	}
@@ -242,7 +236,7 @@
 	}
 
 	function hangup() {
-		rtcPlugin.hangUp();
+	    rtcPlugin.hangUp();
 		socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : rtcPlugin.remoteId } , function() { 
 			dlog('hangup()');
 		});
@@ -263,10 +257,10 @@
 				msgData : { sdp : sdp, type : "offer" }
 			}, function offerCallbackComplete (param) {
 				dlog('offerCallback()' + param);
+				document.getElementById(remoteId).disabled = true;
 			});
-
 		});
-		document.getElementById(remoteId).disabled = true; 
+		 
 	}
 
 	function run() {
@@ -275,15 +269,38 @@
 		element.width = 400;
 		element.height = 300;
 
-		rtcPlugin = new RTCPlugin(element);
-		rtcPlugin.run();
-	}
+		rtcPlugin = new RTCPlugin(element, function win() {
+		    authenticate();
+		}, function fail() {
+		    alert("Could not start plugin.");
+		});
+
+    }
 
 	function dlog(text) {
 		document.getElementById('divLog').innerHTML += text + '<br>';
 	}
 
+	function readyStateChange() {
+	    if (videoElement.readyState === 4) {
+	        run();
+	    }
+	}
     </script>
+
+    <object id="videoElement" 
+            onreadystatechange="readyStateChange()"
+            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+            height=400 width=0></object>
+    
+	<div id='divMe'></div>
+	<div id='divPeers'> </div>
+	<div id='divATL'> </div>
+	<div id='divSDP'> </div>
+    <div id='myid'></div>
+	<pre>
+		<div id='divLog'> </div>
+	</pre>
 
 </body>
 </html>
