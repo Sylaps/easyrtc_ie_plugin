@@ -28,12 +28,16 @@
 #include "stdafx.h"
 
 #include "main_wnd.h"
+#include "conductor.h"
 
 #include <math.h>
 
 #include "talk/base/common.h"
 #include "talk/base/logging.h"
+#include "talk/app/webrtc/mediastreaminterface.h"
+
 #include "talk/base/win32socketserver.h"
+#include "talk/base/json.h"
 #include "defaults.h"
 
 ATOM MainWnd::wnd_class_ = 0;
@@ -85,7 +89,7 @@ namespace {
 MainWnd::MainWnd()
 	: 
 //ui_(CONNECT_TO_SERVER), 
-	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL) {
+	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL), renderMode(MASTER) {
 }
 
 MainWnd::~MainWnd() {
@@ -95,16 +99,12 @@ MainWnd::~MainWnd() {
 //TODO: move this into the class plz
 
 bool MainWnd::Create(HWND hwnd, DWORD ui_tid_) {
+
 	ASSERT(wnd_ == NULL);
 
 	ui_thread_id_ = ui_thread_id_;
 	wnd_ = hwnd;
-	/*
-	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	if (!hr) {
-		LOG(INFO) << "CoInitializeEx failed with COINIT_MULTITHREADED";
-	}
-*/
+
 	::SendMessage(wnd_, WM_SETFONT, reinterpret_cast<WPARAM>(GetDefaultFont()), TRUE);
 
 	return wnd_ != NULL;
@@ -127,8 +127,6 @@ bool MainWnd::IsWindow() {
 	return wnd_ && ::IsWindow(wnd_) != FALSE;
 }
 
-
-
 void MainWnd::MessageBox(const char* caption, const char* text, bool is_error) {
 	DWORD flags = MB_OK;
 	if (is_error)
@@ -138,27 +136,69 @@ void MainWnd::MessageBox(const char* caption, const char* text, bool is_error) {
 }
 
 void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
-	local_renderer_.reset(new VideoRenderer(handle(), 1, 1, local_video));
+	local_renderer_.reset(new VideoRenderer(wnd_, 1, 1, local_video));
 }
 
 void MainWnd::StopLocalRenderer() {
 	local_renderer_.reset();
 }
 
+
 void MainWnd::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
-	remote_renderer_.reset(new VideoRenderer(handle(), 1, 1, remote_video));
+	remote_renderer_.reset(new VideoRenderer(wnd_, 1, 1, remote_video));
 }
 
 void MainWnd::StopRemoteRenderer() {
 	remote_renderer_.reset();
 }
 
+//hackhackhack
+void MainWnd::AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) {
+
+	// pull a render handle off the global queue
+	if (remote_render_handles_.size() > 0){
+		HWND wnd = remote_render_handles_.front();
+		remote_render_handles_.pop();
+
+		// add an external renderer if we have a ptr to the hwnd for it
+		auto iter = remote_renderers.find(key);
+		if (iter == remote_renderers.end()) {
+			// Wrap up the hwnd and VideoRenderer together so we can access the 
+			// hwnd later, and assign it to this easyrtcid
+			remote_renderers[key] =
+				new ExternalRemoteRenderer(new VideoRenderer(wnd, 1, 1, remote_video), wnd);
+		}
+	}
+	else {
+		LOG(INFO) << " Unable to add remote renderer - no HWND's in the queue";
+	}
+}
+
+//hackhackhack
+void MainWnd::StopExternalRemoteRenderers() {
+	/*
+	
+	
+	
+	FIXME!!!!!!!! Must clean up after ourselves.
+	
+	
+	*/
+	/*
+	for (auto entry : remote_renderers){
+		
+	}
+	*/
+//	remote_renderers.erase();
+}
+
+
 void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
 	
 //	BOOL b = ::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
 
-	LRESULT b = ::SendNotifyMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
-	if (b) {
+	BOOL b = ::SendNotifyMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	if (!b) {
 		LOG(INFO) << __FUNCTION__ << " failed to post to thread: " << ui_thread_id_;
 	}
 	else {
@@ -168,42 +208,57 @@ void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
 
 void MainWnd::ProcessUICallback(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 	if (uMsg == UI_THREAD_CALLBACK)	{
-		callback_->UIThreadCallback(static_cast<int>(wParam), reinterpret_cast<void*>(lParam));
+		if (callback_) {
+			callback_->UIThreadCallback(static_cast<int>(wParam), reinterpret_cast<void*>(lParam));
+		}
+		else {
+			LOG(INFO) << " Callback could not be called on null object.";
+		}
 	}
 }
 
-void MainWnd::OnPaint() {
+void MainWnd::AddRenderHandle(uint32_t handle) {
+	
+	LOG(INFO) << __FUNCTION__ << " : Adding new RenderHandle : " << handle;
+	
+	HWND ptr = reinterpret_cast<HWND>(handle);
 
-	PAINTSTRUCT ps;
-	::BeginPaint(handle(), &ps);
+	if (ptr == NULL){
+		LOG(INFO) << __FUNCTION__ << " : Passed a bad pointer.";
+	}
 
-	RECT rc;
-	::GetClientRect(handle(), &rc);
+	remote_render_handles_.push(ptr);
 
-	VideoRenderer* local_renderer = local_renderer_.get();
-	VideoRenderer* remote_renderer = remote_renderer_.get();
+}
 
-	if (remote_renderer && local_renderer) {
+/*private*/ void MainWnd::renderToHwnd(HWND wnd, VideoRenderer* renderer){
 
-		AutoLock<VideoRenderer> local_lock(local_renderer);
-		AutoLock<VideoRenderer> remote_lock(remote_renderer);
+	HDC externalDC = NULL;
+	RECT externalRC;
+	if (wnd){
+		externalDC = ::GetDC(wnd);
+	}
 
-		const BITMAPINFO& rvbmi = remote_renderer->bmi();
-		int rvheight = abs(rvbmi.bmiHeader.biHeight);		// Remove Vide
+	if (renderer && wnd && externalDC){
+
+		::GetClientRect(wnd, &externalRC);
+
+		const BITMAPINFO& rvbmi = renderer->bmi();
+		int rvheight = abs(rvbmi.bmiHeader.biHeight);		// Remove Video
 		int rvwidth = rvbmi.bmiHeader.biWidth;
 
-		const uint8* rvimage = remote_renderer->image();
+		const uint8* rvimage = renderer->image();
 
 		if (rvimage != NULL) {
-			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
+			HDC dc_mem = ::CreateCompatibleDC(externalDC);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
 			// Set the map mode so that the ratio will be maintained for us.
-			HBITMAP bmp_mem = ::CreateCompatibleBitmap(ps.hdc, rc.right, rc.bottom);
+			HBITMAP bmp_mem = ::CreateCompatibleBitmap(externalDC, externalRC.right, externalRC.bottom);
 			HGDIOBJ bmp_old = ::SelectObject(dc_mem, bmp_mem);
 
-			POINT logical_area = { rc.right, rc.bottom };
-			DPtoLP(ps.hdc, &logical_area, 1);
+			POINT logical_area = { externalRC.right, externalRC.bottom };
+			DPtoLP(externalDC, &logical_area, 1);
 			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
 
 			int thumb_width = 100;
@@ -211,11 +266,11 @@ void MainWnd::OnPaint() {
 
 			// float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
 
-			HDC all_dc[] = { ps.hdc, dc_mem };
+			HDC all_dc[] = { externalDC, dc_mem };
 			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i) {
 				SetMapMode(all_dc[i], MM_ISOTROPIC);
 				SetWindowExtEx(all_dc[i], logical_area.x, logical_area.y, NULL);
-				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
+				SetViewportExtEx(all_dc[i], externalRC.right, externalRC.bottom, NULL);
 			}
 
 			RECT logical_rect = { 0, 0, logical_area.x, logical_area.y };
@@ -227,75 +282,44 @@ void MainWnd::OnPaint() {
 			x = 0;
 			y = 0;
 
-/*			int StretchDIBits(
-				_In_  HDC hdc,
-				_In_  int XDest,				0
-				_In_  int YDest,				0
-				_In_  int nDestWidth,			remote vid width
-				_In_  int nDestHeight,			remote vid height
-				_In_  int XSrc,					0
-				_In_  int YSrc,					0
-				_In_  int nSrcWidth,			remote vid width
-				_In_  int nSrcHeight,			remote vid height
-				_In_  const VOID *lpBits,		actual bitmap
-				_In_  const BITMAPINFO *lpBitsInfo,
-				_In_  UINT iUsage,				DIB_RGB_COLORS
-				_In_  DWORD dwRop				SRCCOPY
-				);
-*/
-
 			StretchDIBits(dc_mem, x, y, rvwidth, rvheight,
 				0, 0, rvwidth, rvheight, rvimage, &rvbmi, DIB_RGB_COLORS, SRCCOPY);
 
-			if ((rc.right - rc.left) > 300) {
-				const BITMAPINFO& lvbmi = local_renderer->bmi();
-				const uint8* lvimage = local_renderer->image();
-				// int thumb_width = bmi.bmiHeader.biWidth / 2;
-				// int thumb_height = abs(bmi.bmiHeader.biHeight) / 2;
-
-				if ((rc.right - rc.left) > 399)	{
-					thumb_width = 140; //  160; 
-					thumb_height = 105; //  120;
-				}
-
-				StretchDIBits(dc_mem,
-					logical_area.x - thumb_width - 3,
-					logical_area.y - thumb_height - 3,
-					thumb_width, thumb_height,
-					0, 0, lvbmi.bmiHeader.biWidth, abs(lvbmi.bmiHeader.biHeight),
-					lvimage, &lvbmi, DIB_RGB_COLORS, SRCCOPY);
-			}
-
-			BitBlt(ps.hdc, 0, 0, logical_area.x, logical_area.y, dc_mem, 0, 0, SRCCOPY);
+			BitBlt(externalDC, 0, 0, logical_area.x, logical_area.y, dc_mem, 0, 0, SRCCOPY);
 
 			// Cleanup.
 			::SelectObject(dc_mem, bmp_old);
 			::DeleteObject(bmp_mem);
 			::DeleteDC(dc_mem);
 		}
-		else {
-			// We're still waiting for the video stream to be initialized.
-			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
-			::FillRect(ps.hdc, &rc, brush);
-			::DeleteObject(brush);
-
-			HGDIOBJ old_font = ::SelectObject(ps.hdc, GetDefaultFont());
-			::SetTextColor(ps.hdc, RGB(0xff, 0xff, 0xff));
-			::SetBkMode(ps.hdc, TRANSPARENT);
-
-			std::string text(kConnecting);
-			if (!local_renderer->image()) {
-				text += kNoVideoStreams;
-			}
-			else {
-				text += kNoIncomingStream;
-			}
-			::DrawTextA(ps.hdc, text.c_str(), -1, &rc,
-				DT_SINGLELINE | DT_CENTER | DT_VCENTER);
-			::SelectObject(ps.hdc, old_font);
-		}
 	}
-	else if (local_renderer && false) {
+
+
+	if (wnd && externalDC){
+		::ReleaseDC(wnd, externalDC);
+	}
+
+}
+
+void MainWnd::OnPaint() {
+
+	VideoRenderer* local_renderer = local_renderer_.get();
+	VideoRenderer* remote_renderer = remote_renderer_.get();
+
+
+	// render remote surfaces
+	for (auto iter : remote_renderers){
+		VideoRenderer* renderTarget = iter.second->videoRenderer;
+		renderToHwnd(iter.second->hwnd, renderTarget);
+	}
+
+	PAINTSTRUCT ps;
+	::BeginPaint(handle(), &ps);
+		
+	RECT rc;
+	::GetClientRect(handle(), &rc);
+
+	if (local_renderer) {
 		AutoLock<VideoRenderer> local_lock(local_renderer);
 
 		const BITMAPINFO& bmi = local_renderer->bmi();
@@ -303,9 +327,8 @@ void MainWnd::OnPaint() {
 		int width = bmi.bmiHeader.biWidth;
 
 		const uint8* image = local_renderer->image();
-
-		if (image != NULL) {
-
+		if (image != NULL)
+		{
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
@@ -344,16 +367,8 @@ void MainWnd::OnPaint() {
 			::DeleteDC(dc_mem);
 		}
 	}
-	else {
-		HBRUSH brush = ::CreateSolidBrush(::GetSysColor(COLOR_WINDOW));
-		::FillRect(ps.hdc, &rc, brush);
-		::DeleteObject(brush);
-
-		LPCTSTR pszText = _T("EasyRTC.com IE Plugin waiting for a connection");
-		TextOut(ps.hdc, 20, 20, pszText, lstrlen(pszText));
-	}
-
-	::EndPaint(handle(), &ps);
+	::EndPaint(handle(), &ps); 
+	
 }
 
 void MainWnd::OnDestroyed() {

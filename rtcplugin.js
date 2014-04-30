@@ -65,6 +65,8 @@
                 this.gotSelfie(json.pluginMessage.data);
             } else if (json.pluginMessage.message == "failedToGetSelfie") {
                 this.failedToGetSelfie(json.pluginMessage.data);
+            } else if (json.pluginMessage.message == "gotWindowHandle" && this.gotWindowHandle) {
+                this.gotWindowHandle(json.pluginMessage.data);
             }
 
         }
@@ -117,10 +119,11 @@
     function RTCPlugin(activexElement, win, fail) {
         this.element = activexElement;
         setEventHandler(this, activexElement.id, nativeEventHandler);
-        this.remoteId = null;
         this.isRunning = false;
         this.readyState = 0;
 
+        this.externalRenderSurfaces = [];
+       
         var self = this;
 
         runPlugin(this, function () {
@@ -134,6 +137,21 @@
 	*/
     /* static */ RTCPlugin.supportedBrowser = function () {
         return window.ActiveXObject === undefined;
+    };
+
+
+    RTCPlugin.prototype.getWindowHandle = function (win) {
+        this.gotWindowHandle = win;
+        nativeCall(this, "getWindowHandle", "");
+    };
+
+    /*
+    * push a new renderer to the native queue
+    */
+    RTCPlugin.prototype.addRenderHandle = function (remoteRenderer) {        
+        nativeCall(this, "addRenderHandle", {
+            handle: remoteRenderer
+        });
     };
 
     /*
@@ -157,7 +175,7 @@
     RTCPlugin.prototype.createOffer = function (remoteId, callback) {
         this.remoteId = remoteId;
         this.onCreateOffer = callback;
-        nativeCall(this, 'makeoffer', '');
+        nativeCall(this, 'makeoffer', { remoteId: remoteId });
     };
 
     /*
@@ -167,10 +185,12 @@
 	* - blocks concurrent calls; we can only handle one offer at a time
 	*/
     RTCPlugin.prototype.handleOffer = function (remoteId, offer, callback) {
+
         if (!this.handlingOffer) {
             this.handlingOffer = true;
             this.remoteId = remoteId;
             this.onHandleOffer = callback;
+            offer.remoteId = remoteId;
             nativeCall(this, 'handleoffer', offer);
         } else {
             throw new Error("Already handling an offer!");
@@ -183,7 +203,8 @@
 	* - asks native code to handle an incoming answer 
 	*/
     RTCPlugin.prototype.handleAnswer = function (remoteId, sdp) {
-        nativeCall(this, 'handleanswer', sdp);
+        var answer = { remoteId: remoteId, sdp: sdp };
+        nativeCall(this, 'handleanswer', answer);
     };
 
     /*
@@ -191,6 +212,8 @@
 	* - asks native code to handle an incoming candidate 
 	*/
     RTCPlugin.prototype.handleCandidate = function (remoteId, candidate) {
+        //TODO: fix for remoteId
+        candidate.remoteId = remoteId;
         nativeCall(this, "handlecandidate", candidate);
     };
 
@@ -199,7 +222,7 @@
 	* - closes the current call
 	*/
     RTCPlugin.prototype.hangUp = function (remoteId) {
-        nativeCall(this, "hangup", '');
+        nativeCall(this, "hangup", { remoteId: remoteId });
     };
 
     /*
@@ -245,9 +268,21 @@
         this.onSetDevicesWin = win;
         this.onSetDevicesFail = fail;
 
-        //HACK FOR NOW
+        //HACK FOR NOW - make a callback through the message loop
         this.onSetDevicesWin();
     };
+
+    /*
+    * Add a plugin as a renderable surface
+    */
+    RTCPlugin.prototype.addRenderTarget = function (plugin, win) {
+        var self = this;
+        plugin.getWindowHandle(function (handle) {
+            self.addRenderHandle(handle);
+            if(win) win();
+        });
+    };
+
 
     /*
 	* Explicitly export only RTCPlugin

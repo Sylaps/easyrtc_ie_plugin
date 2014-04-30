@@ -39,6 +39,8 @@
 #include "talk/media/base/videocommon.h"
 #include "talk/media/base/videoframe.h"
 #include "talk/media/base/videorenderer.h"
+#include "talk/app/webrtc/peerconnectioninterface.h"
+#include "talk/app/webrtc/videosourceinterface.h"
 
 class MainWndCallback
 {
@@ -69,14 +71,26 @@ public:
 	virtual void RegisterObserver(MainWndCallback* callback) = 0;
 
 	virtual bool IsWindow() = 0;
+	virtual HWND handle() const = 0;
 	virtual void MessageBox(const char* caption, const char* text, bool is_error) = 0;
+
+	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface>) = 0;
+	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource() = 0;
+	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface>) = 0;
+	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource() = 0;
 
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video) = 0;
 	virtual void StopLocalRenderer() = 0;
+
 	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) = 0;
 	virtual void StopRemoteRenderer() = 0;
+	//hakchahchakch
+	virtual void AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
+	virtual void StopExternalRemoteRenderers() = 0;
 
 	virtual void QueueUIThreadCallback(int msg_id, void* data) = 0;
+	virtual std::string GetIceServers() = 0;
+
 };
 
 #ifdef WIN32
@@ -84,12 +98,17 @@ public:
 class MainWnd : public MainWindow
 {
 public:
-	static const wchar_t kClassName[];
-
-	enum WindowMessages
-	{
+	
+	enum WindowMessages {
 		UI_THREAD_CALLBACK = WM_APP + 1,
 	};
+
+	enum RenderMode {
+		MASTER,
+		SLAVE
+	};
+	
+	static const wchar_t kClassName[];
 
 	MainWnd();
 	~MainWnd();
@@ -97,8 +116,8 @@ public:
 	bool Create(HWND, DWORD);
 	bool Destroy();
 
-	//HACK
 	void OnPaint();
+	void AddRenderHandle(uint32_t);
 
 	virtual void RegisterObserver(MainWndCallback* callback);
 	virtual bool IsWindow();
@@ -106,13 +125,30 @@ public:
 
 	void ProcessUICallback(UINT, WPARAM, LPARAM, BOOL&);
 
+	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface> src){ video_source_ = src; }
+	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource(){ return video_source_; }
+	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface> src){ audio_source_ = src; }
+	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource(){ return audio_source_; }
+
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
 	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video);
 	virtual void StopRemoteRenderer();
 
+	// hackhackhack
+	virtual void AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_videod);
+	virtual void StopExternalRemoteRenderers();
+
 
 	virtual void QueueUIThreadCallback(int msg_id, void* data);
+
+	void SetIceServers(std::string json) {
+		iceServerCandidates_ = json;
+	}
+
+	virtual std::string GetIceServers(){
+		return iceServerCandidates_;
+	}
 
 	HWND handle() const {
 		return wnd_;
@@ -148,7 +184,7 @@ public:
 		enum {
 			SET_SIZE,
 			RENDER_FRAME,
-		};
+		};		
 
 		HWND wnd_;
 		BITMAPINFO bmi_;
@@ -182,12 +218,33 @@ protected:
 //	static bool RegisterWindowClass();
 
 private:
+	
+	struct ExternalRemoteRenderer {
+		VideoRenderer* videoRenderer;
+		HWND hwnd;
+		ExternalRemoteRenderer(VideoRenderer* renderer, HWND wnd): videoRenderer(renderer), hwnd(wnd){
+		}
+		~ExternalRemoteRenderer(){}
+	};
+
+	void renderToHwnd(HWND wnd, VideoRenderer* renderer);
+
 	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
+
+	std::queue<HWND> remote_render_handles_;
+	std::map <std::string, ExternalRemoteRenderer*> remote_renderers;
+	
+	// remote renderer (deprecated)
 	talk_base::scoped_ptr<VideoRenderer> remote_renderer_;
 
+	std::string iceServerCandidates_;
+
+	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source_;
+	talk_base::scoped_refptr<webrtc::AudioSourceInterface> audio_source_;
+	
 	HWND wnd_;
 	DWORD ui_thread_id_;
-
+	RenderMode renderMode;
 
 	bool destroyed_;
 	void* nested_msg_;

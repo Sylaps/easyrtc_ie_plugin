@@ -10,7 +10,7 @@
 <body>
 
 	<br>
-	<button onclick="run()">run</button>
+	<button onclick="addHandle()">add render handle</button>
 	<button onclick="authenticate()">authenticate</button>
 	<button onclick="hangup()">hangup</button>
 	<button onclick="debug()">debug</button>
@@ -20,9 +20,12 @@
 
 	var myrtcid
 	,   rtcPlugin
+    ,   rtcPlugin2
 	, 	iceServers
 	,   socket
 	,   element
+    ,   element2
+    ,   element3
 	,   setupCallbacks;
 
 	if (!Object.keys) {
@@ -38,8 +41,10 @@
 
 	window.onload = function () {
 
+	    element = document.getElementById("videoElement");
+	    element2 = document.getElementById("videoElement2");
+	    element3 = document.getElementById("videoElement3");
 
-		element = document.getElementById("videoElement");
 
 	    //socket = io.connect('dev.easyrtc.com');
 		socket = io.connect('192.168.1.16:8080');
@@ -109,8 +114,8 @@
 					
 						case 'answer':
 						
-						    dlog('got answer')
-						    rtcPlugin.handleAnswer("remoteID", json.msgData.sdp);
+						    dlog('got answer');
+						    rtcPlugin.handleAnswer(json.senderEasyrtcid, json.msgData.sdp);
 							break;
 						
 						case 'candidate': 
@@ -123,7 +128,7 @@
 								sdpMLineIndex : json.msgData.label
 							};
 
-							rtcPlugin.handleCandidate("remoteId", cand);
+							rtcPlugin.handleCandidate(json.senderEasyrtcid, cand);
 
 							break;
 
@@ -140,7 +145,7 @@
 								dlog(sdp);
 								socket.emit('easyrtcCmd', { 
 									msgType : "answer",
-									targetEasyrtcid : rtcPlugin.remoteId,
+									targetEasyrtcid : json.senderEasyrtcid,
 									msgData : { sdp : sdp, type : "answer" }
 								}, function() {
 									dlog("answered");
@@ -167,6 +172,13 @@
 		};
 
 	};
+
+	function addHandle() {
+
+	    rtcPlugin.addRenderTarget(rtcPlugin2);
+	    rtcPlugin.addRenderTarget(rtcPlugin3);
+
+    }
 
 	function addPeerButtons(message){
 		var rtcids = Object.keys(message.msgData.roomData["default"].clientList);
@@ -204,7 +216,6 @@
 */
 
 	function handleRoomData(roomData) {
-		// dump(roomData, '');
 		var htm = '';
 		if (roomData["default"].clientListDelta.updateClient) {
 			var keys = Object.keys(roomData["default"].clientListDelta.updateClient);
@@ -265,15 +276,42 @@
 
 	function run() {
 
-		element = document.getElementById("videoElement");
+	    element = document.getElementById("videoElement");
+	    element2 = document.getElementById("videoElement2");
+	    element3 = document.getElementById("videoElement3");
+
 		element.width = 400;
 		element.height = 300;
 
+		element2.width = 400;
+		element2.height = 300;
+
+		element3.width = 400;
+		element3.height = 300;
+
 		rtcPlugin = new RTCPlugin(element, function win() {
-		    authenticate();
+
+		    setTimeout(function () {
+
+                rtcPlugin2 = new RTCPlugin(element2, function win() {
+                    rtcPlugin3 = new RTCPlugin(element3, function win() {
+                        //addHandle();
+                        alert("ready");
+                    }, function fail() {
+                        alert("Could not start plugin 2.");
+                    });
+                }, function fail() {
+                    alert("Could not start plugin 2.");
+                });
+
+
+
+		    }, 100);
+
 		}, function fail() {
 		    alert("Could not start plugin.");
 		});
+
 
     }
 
@@ -288,11 +326,21 @@
 	}
     </script>
 
-    <object id="videoElement" 
-            onreadystatechange="readyStateChange()"
+    <object id="videoElement"
             classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
             height=400 width=0></object>
-    
+
+    <object id="videoElement2"
+            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+            height=400 width=0>
+    </object>    
+
+    <object id="videoElement3"
+            onreadystatechange="readyStateChange()"
+            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+            height=400 width=0>
+    </object>    
+
 	<div id='divMe'></div>
 	<div id='divPeers'> </div>
 	<div id='divATL'> </div>

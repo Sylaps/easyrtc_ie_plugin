@@ -40,6 +40,7 @@
 #include "talk/base/logging.h"
 #include "defaults.h"
 #include "talk/media/devices/devicemanager.h"
+#include "talk/app/webrtc/peerconnectioninterface.h"
 
 // Names used for a IceCandidate JSON object.
 const char kCandidateSdpMidName[] = "sdpMid";
@@ -49,6 +50,19 @@ const char kCandidateSdpName[] = "candidate";
 // Names used for a SessionDescription JSON object.
 const char kSessionDescriptionTypeName[] = "type";
 const char kSessionDescriptionSdpName[] = "sdp";
+
+std::string extractString(const char * field, std::string message){
+	Json::Value json;
+	Json::Reader reader;
+	std::string val;
+
+	if (!reader.parse(message, json)){
+		LOG(INFO) << "Bad response...";
+	}
+
+	val = json[field].asString();
+	return val;
+}
 
 const std::string gettime() {
 	time_t     now = time(0);
@@ -81,12 +95,17 @@ protected:
 };
 
 
-Conductor::Conductor(MainWindow* main_wnd)
-	: mainWindow_(main_wnd) {
+Conductor::Conductor(std::string easyRtcId, 
+					MainWindow* main_wnd, 
+					talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pfactory,
+					std::string iceServerCandidates_) : 
+					mainWindow_(main_wnd), 
+					easyRtcId(easyRtcId), 
+					peer_connection_factory_(pfactory), 
+					iceCandidatesFromSS_(iceServerCandidates_) {
 	main_wnd->RegisterObserver(this);
 	SetAllowDtlsSctpDataChannels();
-
-
+	ASSERT(peer_connection_factory_ != NULL);
 }
 
 Conductor::~Conductor() {
@@ -104,11 +123,13 @@ void Conductor::Close() {
 }
 
 void Conductor::ProcessCandidate(std::string json) {
+	LOG(INFO) << "Got Candidate:" << json;
 	OnMessageFromPeer(0, json);
 }
 
-void Conductor::ProcessOffer(std::string remotesdp)	{
-	OnMessageFromPeer(0, remotesdp);	
+void Conductor::ProcessOffer(std::string offer)	{
+	std::string sdp = extractString("sdp", offer);
+	OnMessageFromPeer(0, sdp);	
 }
 
 void Conductor::Hangup() {
@@ -118,28 +139,28 @@ void Conductor::Hangup() {
 	}
 }
 
-void Conductor::ProcessAnswer(std::string remotesdp) {
+
+void Conductor::ProcessAnswer(std::string answer) {
+
 	std::string type = "answer";
-	std::string json_object;
+	std::string sdp = extractString("sdp", answer); 
 
 	if (peer_connection_ == NULL)
 		InitializePeerConnection();
 
-	webrtc::SessionDescriptionInterface* session_description(webrtc::CreateSessionDescription(type, remotesdp));
+	webrtc::SessionDescriptionInterface* session_description(webrtc::CreateSessionDescription(type, sdp));
 	peer_connection_->SetRemoteDescription(DummySetSessionDescriptionObserver::Create(), session_description);
 }
 
-void Conductor::SetIceServers(std::string icejson) {
-	iceCandidatesFromSS_ = icejson;
-}
+
 
 void Conductor::CreateOfferSDP() {
 	LOG(INFO) << "createoffer ***********************";
 
-	if (peer_connection_ == NULL)
+	if (peer_connection_.get() == NULL)
 		InitializePeerConnection();
 
-	peer_connection_->CreateOffer(this, NULL);
+	peer_connection_.get()->CreateOffer(this, NULL);
 }
 
 std::string trim(std::string str) {
@@ -148,12 +169,11 @@ std::string trim(std::string str) {
 	return str;
 }
 
+
 bool Conductor::InitializePeerConnection() {
-	LOG(INFO) << "\n InitializePeerConnection ***********************";
-	ASSERT(peer_connection_factory_.get() == NULL);
+	LOG(INFO) << "\n InitializePeerConnection *********************** " << this->easyRtcId;
 	ASSERT(peer_connection_.get() == NULL);
 
-	peer_connection_factory_ = webrtc::CreatePeerConnectionFactory();
 
 	if (!peer_connection_factory_.get()) {
 		mainWindow_->MessageBox("Error", "Failed to initialize PeerConnectionFactory", true);
@@ -196,7 +216,7 @@ bool Conductor::InitializePeerConnection() {
 //	server.uri = "stun:stun.l.google.com:19302";
 //	servers.push_back(server);
 
-	peer_connection_ = peer_connection_factory_->CreatePeerConnection(servers, this, NULL, this); // NULL: media constraints
+	peer_connection_ = peer_connection_factory_.get()->CreatePeerConnection(servers, this, NULL, this); // NULL: media constraints
 
 	if (!peer_connection_.get()) {
 		mainWindow_->MessageBox("Error", "CreatePeerConnection failed", true);
@@ -208,15 +228,11 @@ bool Conductor::InitializePeerConnection() {
 }
 
 void Conductor::DeletePeerConnection() {
-	peer_connection_ = NULL;	// doing this later cause the last video image to remain on screen
+	peer_connection_.release();	// doing this later cause the last video image to remain on screen
 	active_streams_.clear();
 	mainWindow_->StopLocalRenderer();
 	mainWindow_->StopRemoteRenderer();
-	peer_connection_factory_ = NULL;	
-}
-
-void Conductor::EnsureStreamingUI() {
-	ASSERT(peer_connection_.get() != NULL);
+	peer_connection_factory_.release();
 }
 
 //
@@ -233,13 +249,13 @@ void Conductor::OnAddStream(webrtc::MediaStreamInterface* stream) {
 	LOG(INFO) << __FUNCTION__ << " " << stream->label();
 
 	stream->AddRef();
-	mainWindow_->QueueUIThreadCallback(NEW_STREAM_ADDED, stream);
+	mainWindow_->QueueUIThreadCallback(NEW_STREAM_ADDED, new EasyRtcStream(this->easyRtcId, stream));
 }
 
 void Conductor::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
 	LOG(INFO) << __FUNCTION__ << " " << stream->label();
 	stream->AddRef();
-	mainWindow_->QueueUIThreadCallback(STREAM_REMOVED, stream);
+	mainWindow_->QueueUIThreadCallback(STREAM_REMOVED, new EasyRtcStream(this->easyRtcId, stream));
 }
 
 void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
@@ -381,27 +397,45 @@ cricket::VideoCapturer* Conductor::OpenVideoCaptureDevice() {
 	}
 	std::vector<cricket::Device>::iterator dev_it = devs.begin();
 	cricket::VideoCapturer* capturer = NULL;
+	LOG(INFO) << "Searching for video devices...";
 	for (; dev_it != devs.end(); ++dev_it) {
-		capturer = dev_manager->CreateVideoCapturer(*dev_it);
 
+		LOG(INFO) << "Device Found: " << dev_it->id << " : " << dev_it->name;
+		capturer = dev_manager->CreateVideoCapturer(*dev_it);
+		
 		if (capturer != NULL) break;
+
 	}
+	LOG(INFO) << "Done searching for devices.";
 	return capturer;
 }
 
+// If you see an assert of capturer != null, it's probably this function's fault.
 void Conductor::AddStreams() {
+
 	if (active_streams_.find(kStreamLabel) != active_streams_.end())
 		return;  // Already added.
 
-	talk_base::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
-		peer_connection_factory_->CreateAudioTrack(
-		kAudioLabel, peer_connection_factory_->CreateAudioSource(NULL)));
+	talk_base::scoped_refptr<webrtc::AudioSourceInterface> audio_source = mainWindow_->GetAudioSource();
+	if (audio_source == NULL){
+		audio_source = peer_connection_factory_->CreateAudioSource(NULL);
+		ASSERT(audio_source != NULL);
+		mainWindow_->SetAudioSource(audio_source);
+	}
 
+	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source = mainWindow_->GetVideoSource();
+	if (video_source == NULL){
+		video_source = peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(), NULL);
+		ASSERT(video_source != NULL);
+		mainWindow_->SetVideoSource(video_source);
+	}
+
+	talk_base::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
+		peer_connection_factory_->CreateAudioTrack(kAudioLabel, audio_source));
+	
 	talk_base::scoped_refptr<webrtc::VideoTrackInterface> video_track(
-		peer_connection_factory_->CreateVideoTrack(
-		kVideoLabel,
-		peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(),
-		NULL)));
+		peer_connection_factory_->CreateVideoTrack(kVideoLabel, video_source));
+
 	mainWindow_->StartLocalRenderer(video_track);
 
 	talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream =
@@ -409,12 +443,12 @@ void Conductor::AddStreams() {
 
 	stream->AddTrack(audio_track);
 	stream->AddTrack(video_track);
+
 	if (!peer_connection_->AddStream(stream, NULL)) {
 		LOG(LS_ERROR) << "Adding stream to PeerConnection failed";
 	}
-	typedef std::pair<std::string,
-		talk_base::scoped_refptr<webrtc::MediaStreamInterface> >
-		MediaStreamPair;
+
+	typedef std::pair<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> >	MediaStreamPair;
 	active_streams_.insert(MediaStreamPair(stream->label(), stream));
 }
 
@@ -461,16 +495,20 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 			break;
 
 		case NEW_STREAM_ADDED: {
-
-			webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
+			
+			EasyRtcStream* estream = reinterpret_cast<EasyRtcStream*>(data);
+			webrtc::MediaStreamInterface* stream = estream->getStream();
 			webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
 			// Only render the first track.
 
 			if (!tracks.empty()) {
 				webrtc::VideoTrackInterface* track = tracks[0];
-				mainWindow_->StartRemoteRenderer(track);
+
+				//mainWindow_->StartRemoteRenderer(track);
+				mainWindow_->AddExternalRemoteRenderer(estream->getEasyRtcId(), track);
 			}
-			stream->Release();
+			//TODO: fix and think abour lifetimes of the stream.
+			//stream->Release();
 
 			break;
 		}

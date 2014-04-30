@@ -35,18 +35,17 @@ class ATL_NO_VTABLE CWebRTCAPI :
 {
 public:
 
-	CWebRTCAPI()
-	{
+	CWebRTCAPI() {
 		m_bWindowOnly = true;
-		conductor_ = new talk_base::RefCountedObject<Conductor>(&mainWindow);
+
+		peer_connection_factory_ = webrtc::CreatePeerConnectionFactory();
 	}
 
-	BSTR Convert(const std::string& s)
-	{
+	BSTR Convert(const std::string& s) {
 		return CComBSTR(s.c_str()).Detach();
 	}
 
-	talk_base::scoped_refptr<Conductor> conductor_ = 0;
+	//talk_base::scoped_refptr<Conductor> conductor_ = 0;
 
 	virtual void SendToBrowser(const std::string& json);	// inherited from JavaScriptCallback
 
@@ -130,6 +129,7 @@ END_MSG_MAP()
 	MainWnd mainWindow;
 	HWND controlHwnd;
 
+
 // IWebRTCAPI
 public:
 
@@ -139,6 +139,12 @@ public:
 	IFACEMETHOD(hello)(BSTR *pRet);
 	IFACEMETHOD(pushToNative)(BSTR cmd, BSTR json);
 	
+	std::map<std::string, Conductor*> conductors;
+
+	void SendWindowHandle(HWND wnd);
+
+	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
+
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
 	HRESULT FinalConstruct() {
@@ -148,7 +154,11 @@ public:
 	void FinalRelease()	{
 
 		try {
-			conductor_->Close();
+
+			// release conductors
+			for (auto c : conductors){
+				c.second->Close();
+			}
 
 			talk_base::CleanupSSL();
 

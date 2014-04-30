@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Tue Apr 15 10:35:06 2014
+/* at Fri Apr 25 21:04:12 2014
  */
 /* Compiler settings for WebRTC_ATL.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 

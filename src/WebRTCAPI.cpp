@@ -33,34 +33,111 @@ std::string BSTR2string(BSTR bstr) {
 }
 
 IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
+
 	std::string cmd = BSTR2string(bcmd);
 	std::string json = BSTR2string(bjson);
 
-	Json::StyledWriter writer;
-	Json::Value jsonobj(json);
-
 	LOG(INFO) << "\n" << gettime() + " push to native +++++++++++++++++++\n" << cmd << "\n" << json;
 
-	if (cmd == "seticeservers")
-		conductor_->SetIceServers(json);
-	else if (cmd == "handleoffer")
-		conductor_->ProcessOffer(json);
-	else if (cmd == "handleanswer")
-		conductor_->ProcessAnswer(json);
-	else if (cmd == "hangup")
-		conductor_->Hangup();
-	else if (cmd == "makeoffer")
-		conductor_->CreateOfferSDP();
-	else if (cmd == "handlecandidate")
-		conductor_->ProcessCandidate(json);
-	else if (cmd == "debug")
-	{
-	#if WIN32
-		::DebugBreak();
-	#endif
+	Json::StyledWriter writer;
+	Json::Value jsonobj;
+	Json::Reader reader;
+
+	if (cmd == "getWindowHandle") {
+		SendWindowHandle(m_hWnd);
+		return S_OK;
+	} 
+
+
+	if (!reader.parse(json, jsonobj)){
+		if (cmd == "debug") {
+#if WIN32
+			::DebugBreak();
+#endif
+		}
+		return S_OK;
 	}
+
+	if (cmd == "addRenderHandle") {
+		// TODO:
+		// can this be done merely with a mutex? ctors could reach to compilation-unit state
+		// notion of master/slave needed (if there's none, you're the master, else send your handle to the master)
+		uint32_t handle = jsonobj["handle"].asUInt();
+		mainWindow.AddRenderHandle(handle);
+		return S_OK;
+	}
+
+	if (cmd == "seticeservers") {
+		mainWindow.SetIceServers(json);
+		return S_OK;
+	}
+
+	//Json dependent path
+
+	Conductor* conductor = NULL;
+	std::string easyRtcId = jsonobj["remoteId"].asString();
+
+	// create a  new conductor for this connection if it doesn't exist
+	auto finder = conductors.find(easyRtcId);
+	if (finder == conductors.end()){
+		std::string iceServers = mainWindow.GetIceServers();
+		LOG(INFO) << "Found ice servers: " << iceServers;
+
+		if (iceServers == ""){
+			::DebugBreak();
+		}
+		conductor = new talk_base::RefCountedObject<Conductor>(easyRtcId, &mainWindow, peer_connection_factory_, mainWindow.GetIceServers());
+
+		conductor->SetJSCallback(this);
+		conductor->AddRef();
+
+		conductors[easyRtcId] = conductor;
+		conductor->AddRef();
+
+	} else {
+		//just use it
+		conductor = conductors[easyRtcId];
+	}
+
+	if (cmd == "handleoffer") {
+		conductor->ProcessOffer(json);
+	}
+	else if (cmd == "handleanswer") {
+		conductor->ProcessAnswer(json);
+	}
+	else if (cmd == "hangup"){
+		conductor->Hangup();
+	}
+	else if (cmd == "makeoffer"){
+		conductor->CreateOfferSDP();
+	}
+	else if (cmd == "handlecandidate") {
+		conductor->ProcessCandidate(json);
+	}
+
 	return S_OK;
 }
+
+
+void CWebRTCAPI::SendWindowHandle(HWND wnd) {
+	LOG(INFO) << __FUNCTION__;
+	ASSERT(wnd != NULL);
+	uint32_t wndPtr = reinterpret_cast<uint32_t>(wnd);
+
+	Json::StyledWriter writer;
+	Json::Value json;
+	Json::Value pluginMessage;
+
+	pluginMessage["data"] = wndPtr;
+	pluginMessage["message"] = "gotWindowHandle";
+	json["pluginMessage"] = pluginMessage;
+
+	std::string* str = new std::string(writer.write(json));
+
+	//QueueUIThreadCallback(Conductor::CallbackID::SEND_MESSAGE_TO_BROWSER, pass);
+	SendToBrowser(*str);
+}
+
 
 void CWebRTCAPI::SendToBrowser(const std::string& json)	{
 	BSTR bjson = Convert(json);
@@ -97,9 +174,10 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 	
 	DWORD ui_thread_id_ = ::GetCurrentThreadId();
 	
+	
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	if (hr) {
-		LOG(INFO) << "Coinitialze failed +++++++++++++++";
+	if (!hr) {
+		LOG(INFO) << "CoInitializeEx failed with COINIT_MULTITHREADED";
 	}
 
 	talk_base::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
@@ -109,8 +187,6 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 	if (!talk_base::InitializeSSL(NULL) || !talk_base::InitializeSSLThread()) {
 		LOG(LS_ERROR) << "error failed to init ssl";
 	}
-	
-	conductor_->SetJSCallback(this);
 
 	if (controlHwnd == NULL || !mainWindow.Create(controlHwnd, ui_thread_id_))	{
 		showDebugAlert(_T("Error in my code :("), _T("hwnd is null!"));

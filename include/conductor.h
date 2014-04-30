@@ -60,6 +60,21 @@ protected:
 	virtual ~JavaScriptCallback() { }
 };
 
+class EasyRtcStream {
+public:
+	EasyRtcStream(std::string easyRtcId, webrtc::MediaStreamInterface* stream): 
+		easyRtcId_(easyRtcId), stream_(stream) {}
+
+	std::string getEasyRtcId(){ return this->easyRtcId_; }
+	webrtc::MediaStreamInterface* getStream() { return this->stream_; }
+
+private:
+
+	std::string easyRtcId_;
+	webrtc::MediaStreamInterface* stream_;
+
+};
+
 class Conductor
 	: public webrtc::PeerConnectionObserver,
 	public webrtc::CreateSessionDescriptionObserver,
@@ -76,16 +91,17 @@ public:
 		PEER_CONNECTION_ERROR,
 		NEW_STREAM_ADDED,
 		STREAM_REMOVED,
+		SEND_EASY_RTC_ID
 	};
 
-	Conductor(MainWindow* main_wnd);
+	Conductor(std::string, MainWindow*, 
+			  talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> ,
+			  std::string);
 
 	bool connection_active() const;
-
 	virtual void Close();
 
 	// easyrtc incoming from JS
-	void SetIceServers(std::string json);
 	void CreateOfferSDP();
 	void ProcessAnswer(std::string json);
 	void ProcessOffer(std::string);
@@ -126,7 +142,6 @@ protected:
 
 	bool InitializePeerConnection();	
 	void DeletePeerConnection();
-	void EnsureStreamingUI();
 	void AddStreams();
 
 	cricket::VideoCapturer* OpenVideoCaptureDevice();
@@ -174,12 +189,6 @@ protected:
 
 	virtual void StartLogin(const std::string& server, int port);	// old peer client/server code to connect to server
 
-//	virtual void DisconnectFromServer();
-
-//	virtual void ConnectToPeer(int peer_id);
-
-//	virtual void DisconnectFromCurrentPeer();
-
 	virtual void UIThreadCallback(int msg_id, void* data);
 
 	// CreateSessionDescriptionObserver implementation.
@@ -190,9 +199,10 @@ protected:
 	// Send a message to the remote peer.
 	void PostToBrowser(const std::string& json);
 
-//	int peer_id_;
+	std::string easyRtcId;
+
 	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
-	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface>peer_connection_factory_;
+	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
 
 	MainWindow* mainWindow_;
 
@@ -200,6 +210,7 @@ protected:
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> > active_streams_;
 	std::string iceCandidatesFromSS_;		// signaling server
 	std::string server_;
+
 };
 
 #endif  // PEERCONNECTION_SAMPLES_CLIENT_CONDUCTOR_H_
