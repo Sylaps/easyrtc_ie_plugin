@@ -41,7 +41,7 @@ Source: "msvcr120.dll"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreve
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 Source: "register_webrtc_plugin.bat"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
 Source: "unregister_webrtc_plugin.bat"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
-Source: "C:\WebRTC\EasyRTCActiveX\installation\uninstall.ico"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
+Source: "uninstall.ico"; DestDir: "{userappdata}\WebRTCIEPlugin"; Flags: ignoreversion
 
 [Run]
 Filename: "{userappdata}\WebRTCIEPlugin\register_webrtc_plugin.bat"

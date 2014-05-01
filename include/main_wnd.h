@@ -82,11 +82,8 @@ public:
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video) = 0;
 	virtual void StopLocalRenderer() = 0;
 
-	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) = 0;
-	virtual void StopRemoteRenderer() = 0;
-	//hakchahchakch
-	virtual void AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
-	virtual void StopExternalRemoteRenderers() = 0;
+	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
+	virtual void StopRemoteRenderers() = 0;
 
 	virtual void QueueUIThreadCallback(int msg_id, void* data) = 0;
 	virtual std::string GetIceServers() = 0;
@@ -132,12 +129,9 @@ public:
 
 	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
-	virtual void StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video);
-	virtual void StopRemoteRenderer();
 
-	// hackhackhack
-	virtual void AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_videod);
-	virtual void StopExternalRemoteRenderers();
+	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_videod);
+	virtual void StopRemoteRenderers();
 
 
 	virtual void QueueUIThreadCallback(int msg_id, void* data);
@@ -224,7 +218,8 @@ private:
 		HWND hwnd;
 		ExternalRemoteRenderer(VideoRenderer* renderer, HWND wnd): videoRenderer(renderer), hwnd(wnd){
 		}
-		~ExternalRemoteRenderer(){}
+		~ExternalRemoteRenderer(){
+		}
 	};
 
 	void renderToHwnd(HWND wnd, VideoRenderer* renderer);

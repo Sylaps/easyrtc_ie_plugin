@@ -144,16 +144,7 @@ void MainWnd::StopLocalRenderer() {
 }
 
 
-void MainWnd::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
-	remote_renderer_.reset(new VideoRenderer(wnd_, 1, 1, remote_video));
-}
-
-void MainWnd::StopRemoteRenderer() {
-	remote_renderer_.reset();
-}
-
-//hackhackhack
-void MainWnd::AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) {
+void MainWnd::AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) {
 
 	// pull a render handle off the global queue
 	if (remote_render_handles_.size() > 0){
@@ -175,21 +166,8 @@ void MainWnd::AddExternalRemoteRenderer(std::string key, webrtc::VideoTrackInter
 }
 
 //hackhackhack
-void MainWnd::StopExternalRemoteRenderers() {
-	/*
-	
-	
-	
-	FIXME!!!!!!!! Must clean up after ourselves.
-	
-	
-	*/
-	/*
-	for (auto entry : remote_renderers){
-		
-	}
-	*/
-//	remote_renderers.erase();
+void MainWnd::StopRemoteRenderers() {
+	remote_renderers.clear();
 }
 
 
@@ -304,7 +282,6 @@ void MainWnd::AddRenderHandle(uint32_t handle) {
 void MainWnd::OnPaint() {
 
 	VideoRenderer* local_renderer = local_renderer_.get();
-	VideoRenderer* remote_renderer = remote_renderer_.get();
 
 
 	// render remote surfaces

@@ -122,14 +122,14 @@ void Conductor::Close() {
 	DeletePeerConnection();
 }
 
-void Conductor::ProcessCandidate(std::string json) {
-	LOG(INFO) << "Got Candidate:" << json;
-	OnMessageFromPeer(0, json);
+void Conductor::ProcessCandidate(std::string candidate) {
+	LOG(INFO) << "Got Candidate:" << candidate;
+	OnMessageFromPeer(0, candidate);
 }
 
 void Conductor::ProcessOffer(std::string offer)	{
-	std::string sdp = extractString("sdp", offer);
-	OnMessageFromPeer(0, sdp);	
+	LOG(INFO) << "Got offer:" << offer;
+	OnMessageFromPeer(0, offer);	
 }
 
 void Conductor::Hangup() {
@@ -145,6 +145,8 @@ void Conductor::ProcessAnswer(std::string answer) {
 	std::string type = "answer";
 	std::string sdp = extractString("sdp", answer); 
 
+	LOG(INFO) << "Got offer:" << answer;
+	
 	if (peer_connection_ == NULL)
 		InitializePeerConnection();
 
@@ -231,8 +233,8 @@ void Conductor::DeletePeerConnection() {
 	peer_connection_.release();	// doing this later cause the last video image to remain on screen
 	active_streams_.clear();
 	mainWindow_->StopLocalRenderer();
-	mainWindow_->StopRemoteRenderer();
-	peer_connection_factory_.release();
+	mainWindow_->StopRemoteRenderers();
+	peer_connection_factory_.release(); // only releasing our pointer to the global peer connection factory
 }
 
 //
@@ -503,12 +505,10 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 
 			if (!tracks.empty()) {
 				webrtc::VideoTrackInterface* track = tracks[0];
-
-				//mainWindow_->StartRemoteRenderer(track);
-				mainWindow_->AddExternalRemoteRenderer(estream->getEasyRtcId(), track);
+				mainWindow_->AddRemoteRenderer(estream->getEasyRtcId(), track);
 			}
 			//TODO: fix and think abour lifetimes of the stream.
-			//stream->Release();
+			stream->Release();
 
 			break;
 		}
