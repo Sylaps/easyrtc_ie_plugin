@@ -37,8 +37,6 @@ public:
 
 	CWebRTCAPI() {
 		m_bWindowOnly = true;
-
-		peer_connection_factory_ = webrtc::CreatePeerConnectionFactory();
 	}
 
 	BSTR Convert(const std::string& s) {
@@ -97,13 +95,14 @@ END_CONNECTION_POINT_MAP()
 BEGIN_MSG_MAP(CWebRTCAPI)
 	MESSAGE_HANDLER(WM_PAINT, OnPaint)
 	MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
-	MESSAGE_HANDLER(33176, OnDestroy)
-	MESSAGE_HANDLER(WM_CLOSE, OnDestroy)
+
+	MESSAGE_HANDLER(33176, OnOtherDestroy)
+	MESSAGE_HANDLER(WM_CLOSE, OnClose)
 	MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
 	// HACK: using the message loop as a thread-safe message passing structure
 	MESSAGE_HANDLER(WM_APP+1,  OnMessage)
-
+	
 END_MSG_MAP()
 
 // Handler prototypes:
@@ -126,7 +125,7 @@ END_MSG_MAP()
 // IViewObjectEx
 	DECLARE_VIEW_STATUS(VIEWSTATUS_SOLIDBKGND | VIEWSTATUS_OPAQUE)
 
-	MainWnd mainWindow;
+	MainWnd* mainWindow;
 	HWND controlHwnd;
 
 
@@ -147,35 +146,34 @@ public:
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-	HRESULT FinalConstruct() {
+	HRESULT FinalConstruct() {		
+		peer_connection_factory_ = webrtc::CreatePeerConnectionFactory();
+		mainWindow = new MainWnd(peer_connection_factory_);
 		return S_OK;
 	}
 
 	void FinalRelease()	{
 
 		try {
-
-			// release conductors
-			for (auto c : conductors){
-				c.second->Close();
-			}
-
 			talk_base::CleanupSSL();
-
-			// causes ie to crash on close		free(conductor_);
-
 			CoUninitialize();
 		}
 		catch (std::exception& ex){
 			LOG(LS_ERROR) << "Exception on shutdown " << ex.what();
 		}
 
+		if (mainWindow)
+			delete mainWindow;
+
 		LOG(INFO) << "Destructor hit.";
 	}
 	LRESULT OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnMessage(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnOtherDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(WebRTCAPI), CWebRTCAPI)

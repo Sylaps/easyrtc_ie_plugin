@@ -42,6 +42,7 @@
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "talk/app/webrtc/videosourceinterface.h"
 
+/*
 class MainWndCallback
 {
 public:
@@ -51,7 +52,7 @@ public:
 
 protected:
 	virtual ~MainWndCallback() { }
-};
+};*/
 
 // Pure virtual interface for the main window.
 class MainWindow
@@ -68,8 +69,6 @@ public:
 //		STREAMING,
 //	};
 
-	virtual void RegisterObserver(MainWndCallback* callback) = 0;
-
 	virtual bool IsWindow() = 0;
 	virtual HWND handle() const = 0;
 	virtual void MessageBox(const char* caption, const char* text, bool is_error) = 0;
@@ -85,7 +84,10 @@ public:
 	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
 	virtual void StopRemoteRenderers() = 0;
 
-	virtual void QueueUIThreadCallback(int msg_id, void* data) = 0;
+	virtual void StartCapture() = 0;
+	virtual void StopCapture() = 0;
+
+	virtual void QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data) = 0;
 	virtual std::string GetIceServers() = 0;
 
 };
@@ -107,7 +109,7 @@ public:
 	
 	static const wchar_t kClassName[];
 
-	MainWnd();
+	MainWnd(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pcf);
 	~MainWnd();
 
 	bool Create(HWND, DWORD);
@@ -115,8 +117,10 @@ public:
 
 	void OnPaint();
 	void AddRenderHandle(uint32_t);
+	void CloseSources();
 
-	virtual void RegisterObserver(MainWndCallback* callback);
+	cricket::VideoCapturer* OpenVideoCaptureDevice();	
+
 	virtual bool IsWindow();
 	virtual void MessageBox(const char* caption, const char* text, bool is_error);
 
@@ -133,8 +137,10 @@ public:
 	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_videod);
 	virtual void StopRemoteRenderers();
 
+	virtual void StartCapture();
+	virtual void StopCapture();
 
-	virtual void QueueUIThreadCallback(int msg_id, void* data);
+	virtual void QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data);
 
 	void SetIceServers(std::string json) {
 		iceServerCandidates_ = json;
@@ -234,8 +240,12 @@ private:
 
 	std::string iceServerCandidates_;
 
+
+	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
 	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source_;
 	talk_base::scoped_refptr<webrtc::AudioSourceInterface> audio_source_;
+
+	cricket::VideoCapturer* capturer;
 	
 	HWND wnd_;
 	DWORD ui_thread_id_;
@@ -243,7 +253,6 @@ private:
 
 	bool destroyed_;
 	void* nested_msg_;
-	MainWndCallback* callback_;
 	static ATOM wnd_class_;
 };
 #endif  // WIN32

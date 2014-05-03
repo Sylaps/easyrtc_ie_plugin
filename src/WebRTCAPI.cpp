@@ -63,12 +63,12 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 		// can this be done merely with a mutex? ctors could reach to compilation-unit state
 		// notion of master/slave needed (if there's none, you're the master, else send your handle to the master)
 		uint32_t handle = jsonobj["handle"].asUInt();
-		mainWindow.AddRenderHandle(handle);
+		mainWindow->AddRenderHandle(handle);
 		return S_OK;
 	}
 
 	if (cmd == "seticeservers") {
-		mainWindow.SetIceServers(json);
+		mainWindow->SetIceServers(json);
 		return S_OK;
 	}
 
@@ -80,13 +80,13 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 	// create a  new conductor for this connection if it doesn't exist
 	auto finder = conductors.find(easyRtcId);
 	if (finder == conductors.end()){
-		std::string iceServers = mainWindow.GetIceServers();
+		std::string iceServers = mainWindow->GetIceServers();
 		LOG(INFO) << "Found ice servers: " << iceServers;
 
 		if (iceServers == ""){
 			::DebugBreak();
 		}
-		conductor = new talk_base::RefCountedObject<Conductor>(easyRtcId, &mainWindow, peer_connection_factory_, mainWindow.GetIceServers());
+		conductor = new talk_base::RefCountedObject<Conductor>(easyRtcId, mainWindow, peer_connection_factory_, mainWindow->GetIceServers());
 
 		conductor->SetJSCallback(this);
 		conductor->AddRef();
@@ -134,7 +134,6 @@ void CWebRTCAPI::SendWindowHandle(HWND wnd) {
 
 	std::string* str = new std::string(writer.write(json));
 
-	//QueueUIThreadCallback(Conductor::CallbackID::SEND_MESSAGE_TO_BROWSER, pass);
 	SendToBrowser(*str);
 }
 
@@ -188,7 +187,7 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 		LOG(LS_ERROR) << "error failed to init ssl";
 	}
 
-	if (controlHwnd == NULL || !mainWindow.Create(controlHwnd, ui_thread_id_))	{
+	if (controlHwnd == NULL || !mainWindow->Create(controlHwnd, ui_thread_id_))	{
 		showDebugAlert(_T("Error in my code :("), _T("hwnd is null!"));
 		return S_OK;
 	}
@@ -197,7 +196,7 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 }
 
 LRESULT CWebRTCAPI::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	mainWindow.OnPaint();
+	mainWindow->OnPaint();
 	return 0;
 }
 
@@ -205,12 +204,47 @@ LRESULT CWebRTCAPI::OnEraseBkgnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 	return S_OK;
 }
 
-LRESULT CWebRTCAPI::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	mainWindow.Destroy();
+LRESULT CWebRTCAPI::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	LOG(INFO) << __FUNCTION__;
+	if (peer_connection_factory_){
+		peer_connection_factory_->Release();
+		peer_connection_factory_.release();
+	}
+	for (auto c : conductors){
+		Conductor * cd = c.second;
+		c.second->Close();
+		delete cd;
+	}
+	conductors.clear();
+	
+	mainWindow->StopCapture();
+
+	return S_OK;
+}
+
+LRESULT CWebRTCAPI::OnClose(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	LOG(INFO) << __FUNCTION__;
+ 	return S_OK;
+}
+
+LRESULT CWebRTCAPI::OnOtherDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	LOG(INFO) << __FUNCTION__;
 	return S_OK;
 }
 
 LRESULT CWebRTCAPI::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
-	mainWindow.ProcessUICallback(uMsg, wParam, lParam, bHandled);
+	if (uMsg == MainWnd::WindowMessages::UI_THREAD_CALLBACK)	{
+		//Find out which conductor this was sent from
+		ConductorCallback* cb = reinterpret_cast<ConductorCallback*>(lParam);
+
+		auto it = conductors.find(cb->easyRtcId_);
+		if (it != conductors.end()) {
+			it->second->UIThreadCallback(static_cast<int>(wParam), cb->data_);
+		}
+		else {
+			LOG(INFO) << " Could not find Conductor for given id:" << cb->easyRtcId_;
+		}
+	}
 	return S_OK;
 }
+

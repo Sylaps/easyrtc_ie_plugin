@@ -4,6 +4,8 @@
 	* Private components
 	*/
 
+    window.dlog = window.dlog || function () { };
+
     /*
 	* Explicit global registry of event handlers
 	* - required due to the nature of binding event handlers to ActiveX controls

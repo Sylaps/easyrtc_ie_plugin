@@ -22,7 +22,7 @@ SolidCompression=yes
 Uninstallable=yes
 UninstallDisplayIcon={userappdata}\WebRTCIEPlugin\uninstall.ico
 ; http://blog.ksoftware.net/tag/ksign/
-SignTool=kSign /d $qEasyWebRTC IE Plugin$q /du $qhttp://www.easyrtc.com$q $f
+SignTool=kSign /d $qEasyRTC IE Plugin$q /du $qhttp://www.easyrtc.com$q $f
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

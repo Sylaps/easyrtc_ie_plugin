@@ -75,11 +75,20 @@ private:
 
 };
 
+struct ConductorCallback {
+	ConductorCallback(std::string easyRtcId, void* data) :easyRtcId_(easyRtcId), data_(data){}
+
+	~ConductorCallback() {
+	}
+
+	std::string easyRtcId_;
+	void * data_;
+};
+
 class Conductor
 	: public webrtc::PeerConnectionObserver,
 	public webrtc::CreateSessionDescriptionObserver,
-	public webrtc::MediaConstraintsInterface,
-	public MainWndCallback
+	public webrtc::MediaConstraintsInterface
 {
 public:
 	enum CallbackID
@@ -101,68 +110,58 @@ public:
 	bool connection_active() const;
 	virtual void Close();
 
-	// easyrtc incoming from JS
 	void CreateOfferSDP();
 	void ProcessAnswer(std::string json);
 	void ProcessOffer(std::string);
 	void ProcessCandidate(std::string json);
 	void Hangup();
+	void UIThreadCallback(int msg_id, void* data);
 
-	// we might want to just display local until a call is made
-//	void getlocalvideo();	// just call InitializePeerConnection
+	std::string GetEasyRtcId() const {
+		return easyRtcId;
+	}
 
 	Constraints mandatory_;
 	Constraints optional_;
 
-	virtual const Constraints& GetMandatory() const
-	{
+	virtual const Constraints& GetMandatory() const {
 		return mandatory_;
 	}
 
-	virtual const Constraints& GetOptional() const
-	{
+	virtual const Constraints& GetOptional() const {
 		return optional_;
 	}
 
-	void SetAllowDtlsSctpDataChannels()
-	{
+	void SetAllowDtlsSctpDataChannels() {
 		mandatory_.push_back(Constraint(MediaConstraintsInterface::kEnableDtlsSrtp, "true"));
 //		SetMandatory(MediaConstraintsInterface::kEnableDtlsSrtp, true);
 	}
 
-	void SetJSCallback(JavaScriptCallback *jsc)
-	{
+	void SetJSCallback(JavaScriptCallback *jsc) {
 		javascriptCallback_ = jsc;
 	}
 
-protected:
 	~Conductor();
+
+protected:
 
 	JavaScriptCallback *javascriptCallback_;
 
 	bool InitializePeerConnection();	
 	void DeletePeerConnection();
-	void AddStreams();
-
-	cricket::VideoCapturer* OpenVideoCaptureDevice();
+	void AddStreams();	
 
 	//
 	// PeerConnectionObserver implementation.
 	//
 	virtual void OnError();
-	virtual void OnStateChange(
-		webrtc::PeerConnectionObserver::StateType state_changed)
-	{
+	virtual void OnStateChange(webrtc::PeerConnectionObserver::StateType state_changed){
 	}
 
 	virtual void OnAddStream(webrtc::MediaStreamInterface* stream);
-
 	virtual void OnRemoveStream(webrtc::MediaStreamInterface* stream);
-
 	virtual void OnRenegotiationNeeded() { }
-
 	virtual void OnIceChange() { }
-
 	virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
 	//
@@ -170,26 +169,13 @@ protected:
 	//
 
 	virtual void OnSignedIn();
-
 	virtual void OnDisconnected();
-
 	virtual void OnPeerConnected(int id, const std::string& name);
-
 	virtual void OnPeerDisconnected(int id);
-
 	virtual void OnMessageFromPeer(int peer_id, const std::string& message);
-
 	virtual void OnMessageSent(int err);
-
 	virtual void OnServerConnectionFailure();
 
-	//
-	// MainWndCallback implementation.
-	//
-
-	virtual void StartLogin(const std::string& server, int port);	// old peer client/server code to connect to server
-
-	virtual void UIThreadCallback(int msg_id, void* data);
 
 	// CreateSessionDescriptionObserver implementation.
 	virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);

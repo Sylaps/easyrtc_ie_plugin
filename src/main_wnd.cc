@@ -35,10 +35,13 @@
 #include "talk/base/common.h"
 #include "talk/base/logging.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
+#include "talk/media/devices/devicemanager.h"
 
 #include "talk/base/win32socketserver.h"
 #include "talk/base/json.h"
 #include "defaults.h"
+
+#include "talk/media/webrtc/webrtcvideocapturer.h"
 
 ATOM MainWnd::wnd_class_ = 0;
 const wchar_t MainWnd::kClassName[] = L"WebRTC_MainWnd";
@@ -86,17 +89,81 @@ namespace {
 
 }  // namespace
 
-MainWnd::MainWnd()
-	: 
-//ui_(CONNECT_TO_SERVER), 
-	wnd_(NULL), destroyed_(false), callback_(NULL), nested_msg_(NULL), renderMode(MASTER) {
+MainWnd::MainWnd(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pcf) :
+	wnd_(NULL), destroyed_(false), nested_msg_(NULL), renderMode(MASTER), peer_connection_factory_(pcf) {
 }
 
 MainWnd::~MainWnd() {
 	ASSERT(!IsWindow());
 }
 
-//TODO: move this into the class plz
+cricket::VideoCapturer* MainWnd::OpenVideoCaptureDevice() {
+	talk_base::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
+		cricket::DeviceManagerFactory::Create());
+	if (!dev_manager->Init()) {
+		LOG(LS_ERROR) << "Can't create device manager";
+		return NULL;
+	}
+	std::vector<cricket::Device> devs;
+	if (!dev_manager->GetVideoCaptureDevices(&devs)) {
+		LOG(LS_ERROR) << "Can't enumerate video devices";
+		return NULL;
+	}
+	std::vector<cricket::Device>::iterator dev_it = devs.begin();
+	cricket::VideoCapturer* capturer = NULL;
+	LOG(INFO) << "Searching for video devices...";
+	for (; dev_it != devs.end(); ++dev_it) {
+
+		LOG(INFO) << "Device Found: " << dev_it->id << " : " << dev_it->name;
+		capturer = dev_manager->CreateVideoCapturer(*dev_it);
+		if (capturer != NULL) break;
+
+	}
+	LOG(INFO) << "Done searching for devices.";
+	return capturer;
+}
+
+void MainWnd::CloseSources() {
+	//cricket::VideoCapturer * cap = 
+
+
+	if (video_source_) {
+		video_source_.get()->Release();
+		video_source_.release();
+	}
+	if (audio_source_) {
+		audio_source_.get()->Release();
+		audio_source_.release();
+	}
+	
+}
+
+void MainWnd::StartCapture() {
+	if (!capturer) {
+		capturer = OpenVideoCaptureDevice();
+	}
+	if (audio_source_ == NULL) {
+		audio_source_ = peer_connection_factory_->CreateAudioSource(NULL);
+		ASSERT(audio_source_ != NULL);
+	}
+	if (video_source_ == NULL) {
+		video_source_ = peer_connection_factory_->CreateVideoSource(capturer, NULL);
+		ASSERT(video_source_ != NULL);
+	}
+}
+
+void MainWnd::StopCapture(){
+	CloseSources();
+	if (capturer){
+		
+		cricket::WebRtcVideoCapturer* c = reinterpret_cast<cricket::WebRtcVideoCapturer*>(capturer);
+		c->Stop();
+
+		delete capturer;
+		capturer = NULL;
+	}
+}
+
 
 bool MainWnd::Create(HWND hwnd, DWORD ui_tid_) {
 
@@ -119,10 +186,6 @@ bool MainWnd::Destroy() {
 	return ret != FALSE;
 }
 
-void MainWnd::RegisterObserver(MainWndCallback* callback) {
-	callback_ = callback;
-}
-
 bool MainWnd::IsWindow() {
 	return wnd_ && ::IsWindow(wnd_) != FALSE;
 }
@@ -143,7 +206,10 @@ void MainWnd::StopLocalRenderer() {
 	local_renderer_.reset();
 }
 
-
+/*
+ AddRemoteRenderer - Adds a renderer given a unique key and a video track. To succeed, there must be an 
+ available HWND on the queue for this to consume as a rendering surface. (See AddRenderHandle)
+*/
 void MainWnd::AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) {
 
 	// pull a render handle off the global queue
@@ -170,12 +236,12 @@ void MainWnd::StopRemoteRenderers() {
 	remote_renderers.clear();
 }
 
-
-void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
+void MainWnd::QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data) {
 	
 //	BOOL b = ::PostThreadMessage(ui_thread_id_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	ConductorCallback* cb = new ConductorCallback(easyRtcId, data);
 
-	BOOL b = ::SendNotifyMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(data));
+	BOOL b = ::SendNotifyMessage(wnd_, UI_THREAD_CALLBACK, static_cast<WPARAM>(msg_id), reinterpret_cast<LPARAM>(cb));
 	if (!b) {
 		LOG(INFO) << __FUNCTION__ << " failed to post to thread: " << ui_thread_id_;
 	}
@@ -185,14 +251,6 @@ void MainWnd::QueueUIThreadCallback(int msg_id, void* data) {
 }
 
 void MainWnd::ProcessUICallback(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
-	if (uMsg == UI_THREAD_CALLBACK)	{
-		if (callback_) {
-			callback_->UIThreadCallback(static_cast<int>(wParam), reinterpret_cast<void*>(lParam));
-		}
-		else {
-			LOG(INFO) << " Callback could not be called on null object.";
-		}
-	}
 }
 
 void MainWnd::AddRenderHandle(uint32_t handle) {
@@ -282,7 +340,6 @@ void MainWnd::AddRenderHandle(uint32_t handle) {
 void MainWnd::OnPaint() {
 
 	VideoRenderer* local_renderer = local_renderer_.get();
-
 
 	// render remote surfaces
 	for (auto iter : remote_renderers){
