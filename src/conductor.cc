@@ -228,8 +228,10 @@ bool Conductor::InitializePeerConnection() {
 }
 
 void Conductor::DeletePeerConnection() {
-	peer_connection_->Close();
-	peer_connection_.release();
+	if (peer_connection_){
+		peer_connection_->Close();
+		peer_connection_.release();
+	}
 	active_streams_.clear();
 	mainWindow_->StopLocalRenderer();
 	mainWindow_->StopRemoteRenderers();

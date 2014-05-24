@@ -125,7 +125,7 @@
         this.readyState = 0;
 
         this.externalRenderSurfaces = [];
-       
+
         var self = this;
 
         runPlugin(this, function () {
@@ -150,7 +150,7 @@
     /*
     * push a new renderer to the native queue
     */
-    RTCPlugin.prototype.addRenderHandle = function (remoteRenderer) {        
+    RTCPlugin.prototype.addRenderHandle = function (remoteRenderer) {
         nativeCall(this, "addRenderHandle", {
             handle: remoteRenderer
         });
@@ -237,13 +237,19 @@
     };
 
     // land of the non-implemented functions
+
+
+
+
+
+    // TODO: implement these !
     /*
     * take a selfie. Cheese!
     */
-    RTCPlugin.prototype.getSelfie = function (optionalResolution, win, fail) {
+    RTCPlugin.prototype.getSelfie = function (win, fail, optionalResolution) {
         this.gotSelfie = win;
         this.failedToGetSelfie = fail;
-        nativeCall("getSelfie", optionalResolution);
+        nativeCall(this, "getSelfie", optionalResolution || "");
     };
 
     /*
@@ -281,7 +287,7 @@
         var self = this;
         plugin.getWindowHandle(function (handle) {
             self.addRenderHandle(handle);
-            if(win) win();
+            if (win) win();
         });
     };
 

@@ -4,12 +4,85 @@
 #include <atlctl.h>
 #include "..\WebRTC_ATL_i.h"
 #include "_IWebRTCAPIEvents_CP.h"
+#include "talk/base/ssladapter.h"
+
+// this group is a hack to get around min/max issues with importing GdiPlus with NOMINMAX defined.
+#include <algorithm>
+using std::min;
+using std::max;
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#include <GdiPlus.h>
+#pragma warning(pop)
+
+#include <atlenc.h>
+#include <atlstr.h>
+#include <atlimage.h>
 
 #if defined(_WIN32_WCE) && !defined(_CE_DCOM) && !defined(_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA)
 #error "Single-threaded COM objects are not properly supported on Windows CE platform, such as the Windows Mobile platforms that do not include full DCOM support. Define _CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA to force ATL to support creating single-thread COM object's and allow use of it's single-threaded COM object implementations. The threading model in your rgs file was set to 'Free' as that is the only threading model supported in non DCOM Windows CE platforms."
 #endif
 
 using namespace ATL;
+
+static std::string* mBase64Encode(void * bytes, int byteLength){
+	if (0 != bytes) {
+
+		CStringA base64;
+		int base64Length = Base64EncodeGetRequiredLength(byteLength);
+
+		VERIFY(Base64Encode(static_cast<const BYTE*>(bytes),
+			byteLength,
+			base64.GetBufferSetLength(base64Length),
+			&base64Length));
+
+		base64.ReleaseBufferSetLength(base64Length);
+
+		return new std::string(base64);
+	}
+	return new std::string("");
+}
+
+// forget understanding it. It's magic.
+static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
+
+	HBITMAP bitmap = ::CreateBitmap(
+		bmi.bmiHeader.biWidth, 
+		abs(bmi.bmiHeader.biHeight), 
+		bmi.bmiHeader.biPlanes, 
+		bmi.bmiHeader.biBitCount, 
+		(void*)image
+	);
+
+	std::string* result = nullptr;
+	if (bitmap) {
+		CImage c;
+		c.Attach(bitmap);
+		ULONGLONG length;
+		IStream *pStream = NULL;
+		if (CreateStreamOnHGlobal(NULL, TRUE, &pStream) == S_OK) {
+			if (c.Save(pStream, Gdiplus::ImageFormatJPEG) == S_OK) {
+				ULARGE_INTEGER ulnSize;
+				LARGE_INTEGER lnOffset;
+				lnOffset.QuadPart = 0;
+				if (pStream->Seek(lnOffset, STREAM_SEEK_END, &ulnSize) == S_OK)	{
+					if (pStream->Seek(lnOffset, STREAM_SEEK_SET, NULL) == S_OK)	{
+						length = ulnSize.QuadPart;
+						ULONG ulBytesRead;
+						BYTE* baPicture = new BYTE[length];
+						pStream->Read(baPicture, length, &ulBytesRead);
+						if (baPicture && length){
+							result = mBase64Encode(baPicture, length);
+						}
+					}
+				}
+			}
+
+		}
+		pStream->Release();
+	}
+	return result;
+}
 
 // CWebRTCAPI
 class ATL_NO_VTABLE CWebRTCAPI :
@@ -139,6 +212,8 @@ public:
 	IFACEMETHOD(pushToNative)(BSTR cmd, BSTR json);
 	
 	std::map<std::string, Conductor*> conductors;
+
+	void SendSelfie();
 
 	void SendWindowHandle(HWND wnd);
 

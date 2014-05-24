@@ -32,6 +32,8 @@
 
 #include <math.h>
 
+#include "WebRTCAPI.h"
+
 #include "talk/base/common.h"
 #include "talk/base/logging.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
@@ -337,6 +339,21 @@ void MainWnd::AddRenderHandle(uint32_t handle) {
 
 }
 
+std::string* MainWnd::GetSelfie(){
+	VideoRenderer* local_renderer = local_renderer_.get();
+	if (local_renderer) {
+		const uint8* image = local_renderer->image();
+		BITMAPINFO bmi = local_renderer->bmi();
+		//return mBase64Encode((void *)image, bmi.bmiHeader.biSizeImage);
+		return encodeImage(image, bmi);
+	}
+
+	return nullptr;
+}
+
+
+
+
 void MainWnd::OnPaint() {
 
 	VideoRenderer* local_renderer = local_renderer_.get();
@@ -351,6 +368,7 @@ void MainWnd::OnPaint() {
 	::BeginPaint(handle(), &ps);
 		
 	RECT rc;
+
 	::GetClientRect(handle(), &rc);
 
 	if (local_renderer) {
@@ -361,15 +379,14 @@ void MainWnd::OnPaint() {
 		int width = bmi.bmiHeader.biWidth;
 
 		const uint8* image = local_renderer->image();
-		if (image != NULL)
-		{
+		if (image != NULL) {
 			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
 			::SetStretchBltMode(dc_mem, HALFTONE);
 
 			// Set the map mode so that the ratio will be maintained for us.
 			HDC all_dc[] = { ps.hdc, dc_mem };
-			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i)
-			{
+
+			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i) {
 				SetMapMode(all_dc[i], MM_ISOTROPIC);
 				SetWindowExtEx(all_dc[i], width, height, NULL);
 				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);

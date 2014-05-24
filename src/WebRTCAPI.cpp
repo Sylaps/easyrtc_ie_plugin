@@ -48,15 +48,19 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 		return S_OK;
 	} 
 
+	if (cmd == "getSelfie") {
+		SendSelfie();
+		return S_OK;
+	}
 
+#if _DEBUG
 	if (!reader.parse(json, jsonobj)){
 		if (cmd == "debug") {
-#if WIN32
 			::DebugBreak();
-#endif
 		}
 		return S_OK;
 	}
+#endif
 
 	if (cmd == "addRenderHandle") {
 		// TODO:
@@ -119,6 +123,24 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 }
 
 
+
+void CWebRTCAPI::SendSelfie(){
+	std::string* base64bitmap = mainWindow->GetSelfie();
+
+	if (base64bitmap && *base64bitmap != "") {
+		Json::StyledWriter writer;
+		Json::Value json;
+		Json::Value pluginMessage;
+
+		pluginMessage["data"] = *base64bitmap;
+		pluginMessage["message"] = "gotSelfie";
+		json["pluginMessage"] = pluginMessage;
+
+		SendToBrowser(writer.write(json));
+		delete base64bitmap;
+	}
+}
+
 void CWebRTCAPI::SendWindowHandle(HWND wnd) {
 	LOG(INFO) << __FUNCTION__;
 	ASSERT(wnd != NULL);
@@ -132,9 +154,9 @@ void CWebRTCAPI::SendWindowHandle(HWND wnd) {
 	pluginMessage["message"] = "gotWindowHandle";
 	json["pluginMessage"] = pluginMessage;
 
-	std::string* str = new std::string(writer.write(json));
+	//std::string* str = new std::string(writer.write(json));
 
-	SendToBrowser(*str);
+	SendToBrowser(writer.write(json) /* *str */);
 }
 
 

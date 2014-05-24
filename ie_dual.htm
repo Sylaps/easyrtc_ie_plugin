@@ -3,6 +3,7 @@
 <head>
     <title>WebRTCAPI</title>
 	<script src="socket.io.min.js"></script>
+    <script src="jquery-1.11.1.min.js"></script>
 	<script src="rtcplugin.js"></script>
 
 </head>
@@ -11,6 +12,8 @@
 
 	<br>
 	<button onclick="debug()">debug</button>
+    <!-- data:image/png;base64, -->
+    <button onclick="selfie()">selfie</button>
 	<br>
     
     <script type="text/javascript">
@@ -46,9 +49,9 @@
 	    }
 	}
 
-	window.onload = function () {
+	$(document).ready(function(){
 
-	    element = document.getElementById("videoElement");
+	    element = document.getElementById("videoElement1");
 	    element2 = document.getElementById("videoElement2");
 	    element3 = document.getElementById("videoElement3");
 
@@ -66,7 +69,7 @@
 
 
 		setupCallbacks = function () {
-			socket.emit('easyrtcAuth', auth, function (message) {
+		    socket.emit('easyrtcAuth', auth, function (message) {
 
 			    rtcPlugin.onicecandidate = function (candidate) {
 			    	
@@ -180,7 +183,7 @@
 			});
 		};
 
-	};
+	});
 
 	function addHandles() {
 
@@ -286,12 +289,31 @@
 		 
 	}
 
+	function selfie() {
+	    rtcPlugin.getSelfie(function (data) {
+	        dlog("selfie taken." + data.length);
+
+	        var img = new Image();
+	        var canvas = document.getElementById('selfieCanvas');
+	        img.onload = function (){
+	            console.log("drawing image in canvas");
+	            canvas.getContext("2d").drawImage(this, 0, 0, canvas.width, canvas.height);
+	        }
+	        var imagedata = 'data:image/jpg;base64,' + data;
+	        img.src = imagedata;
+
+	        $('#selfie').html("<img src='" + imagedata + "'></image>")
+	    }, function (fail) {
+	        dlog("failed to take selfie.");
+	    });
+	}
+
 	function run() {
 
-	    element = document.getElementById("videoElement");
+	    element = document.getElementById("videoElement1");
 	    element2 = document.getElementById("videoElement2");
 	    element3 = document.getElementById("videoElement3");
-
+        /*
 		element.width = 400;
 		element.height = 300;
 
@@ -300,7 +322,7 @@
 
 		element3.width = 400;
 		element3.height = 300;
-
+        */
 		rtcPlugin = new RTCPlugin(element, function win() {
 
 		    setTimeout(function () {
@@ -335,32 +357,98 @@
 	}
 
 	function readyStateChange() {
-	    if (videoElement.readyState === 4) {
+	    if (videoElement1.readyState === 4) {
 	        run();
 	    }
 	}
     </script>
 
-    <object id="videoElement"
-            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=400 width=0></object>
+    <style>
+        .videoOverlay {
+            position: absolute;
+            background: 3px solid white;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
 
-    <object id="videoElement2"
-            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=400 width=0>
-    </object>    
+        .videoElement {
+            position: relative;
+            z-index:1;
+        }
 
-    <object id="videoElement3"
-            onreadystatechange="readyStateChange()"
-            classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-            height=400 width=0>
-    </object>    
+        .videoContainer {
+            position:relative;
+            width:400px;
+            height:300px;
+            z-index:0;
+        }
+         
+        .controls{
+            position:absolute;
+            left:200px;
+            top:200px;
+            z-index:1;
+            background: none transparent;
+        }
+
+        #selfieCanvas {
+            height:150px;
+            width:200px;
+        }
+    </style>
+
+
+    <!-- WIP for overlay on videos - requires preceeding iframe in container -->
+
+    <div id="container1" class="videoContainer" style="left:0px; position:absolute; height:150px; width:200px;">
+        <iframe id='overlay1' class="videoOverlay" frameborder="0"></iframe>
+        <object id="videoElement1" class="videoElement"
+                classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+                height=150 width=200></object>
+    </div>
+
+    <div style="position: relative; left: 75px; top: 100px; z-index:-1">
+        <div id="container2" class="videoContainer">
+            <iframe id='overlay2' class="videoOverlay" frameborder="0"></iframe>
+            <object id="videoElement2" class="videoElement"
+                    classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+                    height=300 width=400></object>
+        </div>
+        <div id="controls" class="controls">
+            <iframe id='overlay3' class="videoOverlay" frameborder="0"></iframe>
+            <button>clickme</button>
+        </div>
+    </div>
+
+    <div id="selfie">
+
+    </div>
+
+
+    <div id="container3" class="videoContainer" style="left:600px;">
+        <iframe id='overlay3' class="videoOverlay" frameborder="0"></iframe>
+        <object id="videoElement3" class="videoElement"
+                classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+                height=300 width=400
+                onreadystatechange="readyStateChange()"></object>
+
+    </div>
+
+
+    <div style="clear:both;"> </div>
+
 
 	<div id='divMe'></div>
-	<div id='divPeers'> </div>
-	<div id='divATL'> </div>
-	<div id='divSDP'> </div>
+	<div id='divPeers'></div>
+	<div id='divATL'></div>
+	<div id='divSDP'></div>
     <div id='myid'></div>
+    <div style="border : 2px solid red;">
+        <p>Selfie:</p>
+        <canvas id="selfieCanvas"></canvas>
+
+    </div>
 	<pre>
 		<div id='divLog'> </div>
 	</pre>

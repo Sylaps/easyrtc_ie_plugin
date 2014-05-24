@@ -33,6 +33,7 @@
 #include <string>
 #include <atlctl.h>
 
+
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/base/win32.h"
 #include "talk/media/base/mediachannel.h"
@@ -72,6 +73,8 @@ public:
 	virtual bool IsWindow() = 0;
 	virtual HWND handle() const = 0;
 	virtual void MessageBox(const char* caption, const char* text, bool is_error) = 0;
+
+	virtual std::string* GetSelfie() = 0;
 
 	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface>) = 0;
 	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource() = 0;
@@ -124,6 +127,7 @@ public:
 	virtual bool IsWindow();
 	virtual void MessageBox(const char* caption, const char* text, bool is_error);
 
+	virtual std::string* GetSelfie();
 	void ProcessUICallback(UINT, WPARAM, LPARAM, BOOL&);
 
 	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface> src){ video_source_ = src; }
