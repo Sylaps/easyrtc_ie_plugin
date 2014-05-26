@@ -81,8 +81,6 @@
 	* Push a message down to native code
 	*/
     /* private */ function nativeCall(plugin, msg, data) {
-        dlog("nativeCall:" + msg);
-        dlog("nativeCall (data):" + data);
         if (plugin.isRunning) {
             plugin.element.pushToNative(msg, typeof data === 'object' ? JSON.stringify(data) : data);
         }
@@ -259,7 +257,7 @@
     RTCPlugin.prototype.getDeviceAttributes = function (win, fail) {
         this.gotDeviceAttributes = win;
         this.failedToGetDeviceAttributes = fail;
-        nativeCall("getDeviceAttributes");
+        nativeCall(this, "getDeviceAttributes");
     };
 
     /*

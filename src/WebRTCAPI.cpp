@@ -123,11 +123,13 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 }
 
 
-
 void CWebRTCAPI::SendSelfie(){
+	std::stringstream selfieStream;
 	std::string* base64bitmap = mainWindow->GetSelfie();
 
+	// Optimized json construction for frame
 	if (base64bitmap && *base64bitmap != "") {
+		/*
 		Json::StyledWriter writer;
 		Json::Value json;
 		Json::Value pluginMessage;
@@ -135,8 +137,12 @@ void CWebRTCAPI::SendSelfie(){
 		pluginMessage["data"] = *base64bitmap;
 		pluginMessage["message"] = "gotSelfie";
 		json["pluginMessage"] = pluginMessage;
-
+		
 		SendToBrowser(writer.write(json));
+		*/
+		selfieStream << "{\"pluginMessage\":{\"data\":\"data:image/jpg;base64," << *base64bitmap << "\", \"message\":\"gotSelfie\"}}";
+		SendToBrowser(selfieStream.str());
+//		selfieStream.clear();
 		delete base64bitmap;
 	}
 }
@@ -163,6 +169,7 @@ void CWebRTCAPI::SendWindowHandle(HWND wnd) {
 void CWebRTCAPI::SendToBrowser(const std::string& json)	{
 	BSTR bjson = Convert(json);
 	Fire_EventToBrowser(bjson);
+	::SysFreeString(bjson); // clean up!
 }
 
 #ifdef DEBUG

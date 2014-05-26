@@ -344,10 +344,8 @@ std::string* MainWnd::GetSelfie(){
 	if (local_renderer) {
 		const uint8* image = local_renderer->image();
 		BITMAPINFO bmi = local_renderer->bmi();
-		//return mBase64Encode((void *)image, bmi.bmiHeader.biSizeImage);
 		return encodeImage(image, bmi);
 	}
-
 	return nullptr;
 }
 
@@ -368,7 +366,6 @@ void MainWnd::OnPaint() {
 	::BeginPaint(handle(), &ps);
 		
 	RECT rc;
-
 	::GetClientRect(handle(), &rc);
 
 	if (local_renderer) {

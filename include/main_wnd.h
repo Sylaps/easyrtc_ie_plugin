@@ -43,32 +43,12 @@
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "talk/app/webrtc/videosourceinterface.h"
 
-/*
-class MainWndCallback
-{
-public:
-	virtual void StartLogin(const std::string& server, int port) = 0;
-	virtual void UIThreadCallback(int msg_id, void* data) = 0;
-	virtual void Close() = 0;
-
-protected:
-	virtual ~MainWndCallback() { }
-};*/
-
 // Pure virtual interface for the main window.
 class MainWindow
 {
 public:
-	virtual ~MainWindow()
-	{
+	virtual ~MainWindow(){
 	}
-
-//	enum UI
-//	{
-//		CONNECT_TO_SERVER,
-//		LIST_PEERS,
-//		STREAMING,
-//	};
 
 	virtual bool IsWindow() = 0;
 	virtual HWND handle() const = 0;

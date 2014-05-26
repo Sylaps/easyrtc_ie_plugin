@@ -26,21 +26,23 @@ using std::max;
 using namespace ATL;
 
 static std::string* mBase64Encode(void * bytes, int byteLength){
+	std::string* result = nullptr;
 	if (0 != bytes) {
 
 		CStringA base64;
 		int base64Length = Base64EncodeGetRequiredLength(byteLength);
+		if (Base64Encode(
+				static_cast<const BYTE*>(bytes),
+				byteLength,
+				base64.GetBufferSetLength(base64Length),
+				&base64Length, 
+				ATL_BASE64_FLAG_NOCRLF)){
 
-		VERIFY(Base64Encode(static_cast<const BYTE*>(bytes),
-			byteLength,
-			base64.GetBufferSetLength(base64Length),
-			&base64Length));
-
-		base64.ReleaseBufferSetLength(base64Length);
-
-		return new std::string(base64);
+			base64.ReleaseBufferSetLength(base64Length);
+			result = new std::string(base64);
+		}
 	}
-	return new std::string("");
+	return result;
 }
 
 // forget understanding it. It's magic.
@@ -60,7 +62,7 @@ static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
 		c.Attach(bitmap);
 		ULONGLONG length;
 		IStream *pStream = NULL;
-		if (CreateStreamOnHGlobal(NULL, TRUE, &pStream) == S_OK) {
+		if (CreateStreamOnHGlobal(NULL, /*delete on release*/TRUE, &pStream) == S_OK) {
 			if (c.Save(pStream, Gdiplus::ImageFormatJPEG) == S_OK) {
 				ULARGE_INTEGER ulnSize;
 				LARGE_INTEGER lnOffset;
@@ -74,6 +76,7 @@ static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
 						if (baPicture && length){
 							result = mBase64Encode(baPicture, length);
 						}
+						delete baPicture;
 					}
 				}
 			}

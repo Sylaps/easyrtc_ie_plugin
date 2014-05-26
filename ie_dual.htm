@@ -291,18 +291,17 @@
 
 	function selfie() {
 	    rtcPlugin.getSelfie(function (data) {
-	        dlog("selfie taken." + data.length);
-
+	        var canvii = $('.selfieCanvas');
 	        var img = new Image();
-	        var canvas = document.getElementById('selfieCanvas');
-	        img.onload = function (){
-	            console.log("drawing image in canvas");
-	            canvas.getContext("2d").drawImage(this, 0, 0, canvas.width, canvas.height);
+	        img.onload = function () {
+	            var self = this;
+	            $.each(canvii, function (index, canvas) {
+	                canvas.getContext("2d").drawImage(self, 0, 0, canvas.width, canvas.height);
+	            });
 	        }
-	        var imagedata = 'data:image/jpg;base64,' + data;
+	        var imagedata = data;
 	        img.src = imagedata;
-
-	        $('#selfie').html("<img src='" + imagedata + "'></image>")
+	        setTimeout(selfie, 30); // at most 30fps
 	    }, function (fail) {
 	        dlog("failed to take selfie.");
 	    });
@@ -392,7 +391,7 @@
             background: none transparent;
         }
 
-        #selfieCanvas {
+        .selfieCanvas {
             height:150px;
             width:200px;
         }
@@ -421,12 +420,7 @@
         </div>
     </div>
 
-    <div id="selfie">
-
-    </div>
-
-
-    <div id="container3" class="videoContainer" style="left:600px;">
+    <div id="container3" class="videoContainer" style="left: 600px; top: 100px; z-index: -1; position:absolute;">
         <iframe id='overlay3' class="videoOverlay" frameborder="0"></iframe>
         <object id="videoElement3" class="videoElement"
                 classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
@@ -446,8 +440,19 @@
     <div id='myid'></div>
     <div style="border : 2px solid red;">
         <p>Selfie:</p>
-        <canvas id="selfieCanvas"></canvas>
-
+        <canvas id="selfieCanvas" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas1" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas2" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas3" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas4" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas5" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas6" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas7" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas8" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas9" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas10" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas11" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas12" class="selfieCanvas"></canvas>
     </div>
 	<pre>
 		<div id='divLog'> </div>
