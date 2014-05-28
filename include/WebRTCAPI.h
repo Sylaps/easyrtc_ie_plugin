@@ -19,6 +19,9 @@ using std::max;
 #include <atlstr.h>
 #include <atlimage.h>
 
+#include "peerconnection_wrapper.h"
+#include "main_wnd.h"
+
 #if defined(_WIN32_WCE) && !defined(_CE_DCOM) && !defined(_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA)
 #error "Single-threaded COM objects are not properly supported on Windows CE platform, such as the Windows Mobile platforms that do not include full DCOM support. Define _CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA to force ATL to support creating single-thread COM object's and allow use of it's single-threaded COM object implementations. The threading model in your rgs file was set to 'Free' as that is the only threading model supported in non DCOM Windows CE platforms."
 #endif
@@ -45,14 +48,14 @@ static std::string* mBase64Encode(void * bytes, int byteLength){
 	return result;
 }
 
-// forget understanding it. It's magic.
+// Forget understanding it. It's magic. :P
 static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
 
 	HBITMAP bitmap = ::CreateBitmap(
-		bmi.bmiHeader.biWidth, 
-		abs(bmi.bmiHeader.biHeight), 
-		bmi.bmiHeader.biPlanes, 
-		bmi.bmiHeader.biBitCount, 
+		bmi.bmiHeader.biWidth,
+		abs(bmi.bmiHeader.biHeight),
+		bmi.bmiHeader.biPlanes,
+		bmi.bmiHeader.biBitCount,
 		(void*)image
 	);
 
@@ -112,6 +115,7 @@ class ATL_NO_VTABLE CWebRTCAPI :
 public:
 
 	CWebRTCAPI() {
+		//We use the hwnd now only for cross-thread communication
 		m_bWindowOnly = true;
 	}
 
@@ -211,16 +215,17 @@ public:
 	/* Add exposed javascript methods here */
 	
 	IFACEMETHOD(run)();
-	IFACEMETHOD(hello)(BSTR *pRet);
+	IFACEMETHOD(hello)(BSTR *pRet);	
 	IFACEMETHOD(pushToNative)(BSTR cmd, BSTR json);
 	
-	std::map<std::string, Conductor*> conductors;
+	std::vector<PeerConnectionWrapper*> connections;
 
 	void SendSelfie();
 
 	void SendWindowHandle(HWND wnd);
 
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
+
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 

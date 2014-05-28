@@ -28,7 +28,8 @@
 #include "stdafx.h"
 
 #include "main_wnd.h"
-#include "conductor.h"
+#include "peerconnection_wrapper.h"
+#include "video_renderer.h"
 
 #include <math.h>
 
@@ -96,7 +97,6 @@ MainWnd::MainWnd(talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface
 }
 
 MainWnd::~MainWnd() {
-	ASSERT(!IsWindow());
 }
 
 cricket::VideoCapturer* MainWnd::OpenVideoCaptureDevice() {
@@ -181,27 +181,11 @@ bool MainWnd::Create(HWND hwnd, DWORD ui_tid_) {
 
 bool MainWnd::Destroy() {
 	BOOL ret = FALSE;
-	if (IsWindow()) {
-		ret = ::DestroyWindow(wnd_);
-	}
-
 	return ret != FALSE;
 }
 
-bool MainWnd::IsWindow() {
-	return wnd_ && ::IsWindow(wnd_) != FALSE;
-}
-
-void MainWnd::MessageBox(const char* caption, const char* text, bool is_error) {
-	DWORD flags = MB_OK;
-	if (is_error)
-		flags |= MB_ICONERROR;
-	
-	::MessageBoxA(handle(), text, caption, flags);
-}
-
-void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
-	local_renderer_.reset(new VideoRenderer(wnd_, 1, 1, local_video));
+void MainWnd::StartLocalRenderer(JavaScriptCallback* cb, std::string easyRtcId, webrtc::VideoTrackInterface* local_video) {
+	local_renderer_.reset(new EasyRTCVideoRenderer(cb, "local", 1, 1, local_video));
 }
 
 void MainWnd::StopLocalRenderer() {
@@ -212,30 +196,12 @@ void MainWnd::StopLocalRenderer() {
  AddRemoteRenderer - Adds a renderer given a unique key and a video track. To succeed, there must be an 
  available HWND on the queue for this to consume as a rendering surface. (See AddRenderHandle)
 */
-void MainWnd::AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) {
-
-	// pull a render handle off the global queue
-	if (remote_render_handles_.size() > 0){
-		HWND wnd = remote_render_handles_.front();
-		remote_render_handles_.pop();
-
-		// add an external renderer if we have a ptr to the hwnd for it
-		auto iter = remote_renderers.find(key);
-		if (iter == remote_renderers.end()) {
-			// Wrap up the hwnd and VideoRenderer together so we can access the 
-			// hwnd later, and assign it to this easyrtcid
-			remote_renderers[key] =
-				new ExternalRemoteRenderer(new VideoRenderer(wnd, 1, 1, remote_video), wnd);
-		}
-	}
-	else {
-		LOG(INFO) << " Unable to add remote renderer - no HWND's in the queue";
-	}
+void MainWnd::AddRemoteRenderer(JavaScriptCallback* cb, std::string key, webrtc::VideoTrackInterface* remote_video) {
+	remote_renderers_.push_back(new EasyRTCVideoRenderer(cb, key, 1, 1, remote_video));
 }
 
 //hackhackhack
 void MainWnd::StopRemoteRenderers() {
-	remote_renderers.clear();
 }
 
 void MainWnd::QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data) {
@@ -252,95 +218,8 @@ void MainWnd::QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* dat
 	}
 }
 
-void MainWnd::ProcessUICallback(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
-}
-
-void MainWnd::AddRenderHandle(uint32_t handle) {
-	
-	LOG(INFO) << __FUNCTION__ << " : Adding new RenderHandle : " << handle;
-	
-	HWND ptr = reinterpret_cast<HWND>(handle);
-
-	if (ptr == NULL){
-		LOG(INFO) << __FUNCTION__ << " : Passed a bad pointer.";
-	}
-
-	remote_render_handles_.push(ptr);
-
-}
-
-/*private*/ void MainWnd::renderToHwnd(HWND wnd, VideoRenderer* renderer){
-
-	HDC externalDC = NULL;
-	RECT externalRC;
-	if (wnd){
-		externalDC = ::GetDC(wnd);
-	}
-
-	if (renderer && wnd && externalDC){
-
-		::GetClientRect(wnd, &externalRC);
-
-		const BITMAPINFO& rvbmi = renderer->bmi();
-		int rvheight = abs(rvbmi.bmiHeader.biHeight);		// Remove Video
-		int rvwidth = rvbmi.bmiHeader.biWidth;
-
-		const uint8* rvimage = renderer->image();
-
-		if (rvimage != NULL) {
-			HDC dc_mem = ::CreateCompatibleDC(externalDC);
-			::SetStretchBltMode(dc_mem, HALFTONE);
-
-			// Set the map mode so that the ratio will be maintained for us.
-			HBITMAP bmp_mem = ::CreateCompatibleBitmap(externalDC, externalRC.right, externalRC.bottom);
-			HGDIOBJ bmp_old = ::SelectObject(dc_mem, bmp_mem);
-
-			POINT logical_area = { externalRC.right, externalRC.bottom };
-			DPtoLP(externalDC, &logical_area, 1);
-			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
-
-			int thumb_width = 100;
-			int thumb_height = 75;
-
-			// float aspect = (float)rvheight / (float)rvwidth; // e.g. 3/4
-
-			HDC all_dc[] = { externalDC, dc_mem };
-			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i) {
-				SetMapMode(all_dc[i], MM_ISOTROPIC);
-				SetWindowExtEx(all_dc[i], logical_area.x, logical_area.y, NULL);
-				SetViewportExtEx(all_dc[i], externalRC.right, externalRC.bottom, NULL);
-			}
-
-			RECT logical_rect = { 0, 0, logical_area.x, logical_area.y };
-			::FillRect(dc_mem, &logical_rect, brush);
-			::DeleteObject(brush);
-
-			int x = (logical_area.x / 2) - (rvwidth / 2);		// what does this do besides nothing?
-			int y = (logical_area.y / 2) - (rvheight / 2);
-			x = 0;
-			y = 0;
-
-			StretchDIBits(dc_mem, x, y, rvwidth, rvheight,
-				0, 0, rvwidth, rvheight, rvimage, &rvbmi, DIB_RGB_COLORS, SRCCOPY);
-
-			BitBlt(externalDC, 0, 0, logical_area.x, logical_area.y, dc_mem, 0, 0, SRCCOPY);
-
-			// Cleanup.
-			::SelectObject(dc_mem, bmp_old);
-			::DeleteObject(bmp_mem);
-			::DeleteDC(dc_mem);
-		}
-	}
-
-
-	if (wnd && externalDC){
-		::ReleaseDC(wnd, externalDC);
-	}
-
-}
-
 std::string* MainWnd::GetSelfie(){
-	VideoRenderer* local_renderer = local_renderer_.get();
+	EasyRTCVideoRenderer* local_renderer = local_renderer_.get();
 	if (local_renderer) {
 		const uint8* image = local_renderer->image();
 		BITMAPINFO bmi = local_renderer->bmi();
@@ -349,126 +228,10 @@ std::string* MainWnd::GetSelfie(){
 	return nullptr;
 }
 
-
-
-
 void MainWnd::OnPaint() {
-
-	VideoRenderer* local_renderer = local_renderer_.get();
-
-	// render remote surfaces
-	for (auto iter : remote_renderers){
-		VideoRenderer* renderTarget = iter.second->videoRenderer;
-		renderToHwnd(iter.second->hwnd, renderTarget);
-	}
-
-	PAINTSTRUCT ps;
-	::BeginPaint(handle(), &ps);
-		
-	RECT rc;
-	::GetClientRect(handle(), &rc);
-
-	if (local_renderer) {
-		AutoLock<VideoRenderer> local_lock(local_renderer);
-
-		const BITMAPINFO& bmi = local_renderer->bmi();
-		int height = abs(bmi.bmiHeader.biHeight);
-		int width = bmi.bmiHeader.biWidth;
-
-		const uint8* image = local_renderer->image();
-		if (image != NULL) {
-			HDC dc_mem = ::CreateCompatibleDC(ps.hdc);
-			::SetStretchBltMode(dc_mem, HALFTONE);
-
-			// Set the map mode so that the ratio will be maintained for us.
-			HDC all_dc[] = { ps.hdc, dc_mem };
-
-			for (int i = 0; i < ARRAY_SIZE(all_dc); ++i) {
-				SetMapMode(all_dc[i], MM_ISOTROPIC);
-				SetWindowExtEx(all_dc[i], width, height, NULL);
-				SetViewportExtEx(all_dc[i], rc.right, rc.bottom, NULL);
-			}
-
-			HBITMAP bmp_mem = ::CreateCompatibleBitmap(ps.hdc, rc.right, rc.bottom);
-			HGDIOBJ bmp_old = ::SelectObject(dc_mem, bmp_mem);
-
-			POINT logical_area = { rc.right, rc.bottom };
-			DPtoLP(ps.hdc, &logical_area, 1);
-
-			HBRUSH brush = ::CreateSolidBrush(RGB(0, 0, 0));
-			RECT logical_rect = { 0, 0, logical_area.x, logical_area.y };
-			::FillRect(dc_mem, &logical_rect, brush);
-			::DeleteObject(brush);
-
-			int x = (logical_area.x / 2) - (width / 2);
-			int y = (logical_area.y / 2) - (height / 2);
-
-			StretchDIBits(dc_mem, x, y, width, height,
-				0, 0, width, height, image, &bmi, DIB_RGB_COLORS, SRCCOPY);
-
-			BitBlt(ps.hdc, 0, 0, logical_area.x, logical_area.y,
-				dc_mem, 0, 0, SRCCOPY);
-
-			// Cleanup.
-			::SelectObject(dc_mem, bmp_old);
-			::DeleteObject(bmp_mem);
-			::DeleteDC(dc_mem);
-		}
-	}
-	::EndPaint(handle(), &ps); 
-	
 }
 
 void MainWnd::OnDestroyed() {
 	PostQuitMessage(0);
-}
-
-
-MainWnd::VideoRenderer::VideoRenderer(
-	HWND wnd, int width, int height,
-	webrtc::VideoTrackInterface* track_to_render)
-	: wnd_(wnd), rendered_track_(track_to_render) {
-
-	::InitializeCriticalSection(&buffer_lock_);
-	ZeroMemory(&bmi_, sizeof(bmi_));
-	bmi_.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmi_.bmiHeader.biPlanes = 1;
-	bmi_.bmiHeader.biBitCount = 32;
-	bmi_.bmiHeader.biCompression = BI_RGB;
-	bmi_.bmiHeader.biWidth = width;
-	bmi_.bmiHeader.biHeight = -height;
-	bmi_.bmiHeader.biSizeImage = width * height * (bmi_.bmiHeader.biBitCount >> 3);
-	rendered_track_->AddRenderer(this);
-}
-
-MainWnd::VideoRenderer::~VideoRenderer() {
-	rendered_track_->RemoveRenderer(this);
-	::DeleteCriticalSection(&buffer_lock_);
-}
-
-void MainWnd::VideoRenderer::SetSize(int width, int height) {
-	AutoLock<VideoRenderer> lock(this);
-
-	bmi_.bmiHeader.biWidth = width;
-	bmi_.bmiHeader.biHeight = -height;
-	bmi_.bmiHeader.biSizeImage = width * height *
-		(bmi_.bmiHeader.biBitCount >> 3);
-	image_.reset(new uint8[bmi_.bmiHeader.biSizeImage]);
-}
-
-void MainWnd::VideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
-	if (!frame)
-		return;
-
-	AutoLock<VideoRenderer> lock(this);
-
-	ASSERT(image_.get() != NULL);
-	frame->ConvertToRgbBuffer(cricket::FOURCC_ARGB,
-		image_.get(),
-		bmi_.bmiHeader.biSizeImage,
-		bmi_.bmiHeader.biWidth *
-		bmi_.bmiHeader.biBitCount / 8);
-
-	InvalidateRect(wnd_, NULL, TRUE);
 }
 

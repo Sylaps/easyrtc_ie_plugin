@@ -58,6 +58,11 @@
             this.onicecandidate(json);
         } else if (json.pluginMessage) {
 
+            if (json.pluginMessage.message == 'frame') {
+                this.inUseRenderSurfaces[json.pluginMessage.easyrtcid].src = json.pluginMessage.data;
+                return;
+            }
+
             /* internal plugin messages */
             if (json.pluginMessage.message == "gotDeviceAttributes") {
                 this.gotDeviceAttributes(json.pluginMessage.data);
@@ -116,13 +121,14 @@
     /* 
 	* ctor function - expects an object tag in the markup (activexElement)
 	*/
-    function RTCPlugin(activexElement, win, fail) {
+    function RTCPlugin(activexElement, canvii, win, fail) {
         this.element = activexElement;
         setEventHandler(this, activexElement.id, nativeEventHandler);
         this.isRunning = false;
         this.readyState = 0;
 
-        this.externalRenderSurfaces = [];
+        this.externalRenderSurfaces = canvii;
+        this.inUseRenderSurfaces = {};
 
         var self = this;
 
@@ -132,26 +138,16 @@
     }
 
     /*
-	* supportedBrowser()
-	* - determine if this browser is supported (ie. IE)
-	*/
-    /* static */ RTCPlugin.supportedBrowser = function () {
-        return window.ActiveXObject === undefined;
-    };
-
-
-    RTCPlugin.prototype.getWindowHandle = function (win) {
-        this.gotWindowHandle = win;
-        nativeCall(this, "getWindowHandle", "");
-    };
-
-    /*
     * push a new renderer to the native queue
     */
-    RTCPlugin.prototype.addRenderHandle = function (remoteRenderer) {
-        nativeCall(this, "addRenderHandle", {
-            handle: remoteRenderer
-        });
+    RTCPlugin.prototype.setupRenderSurface = function (easyRtcId) {
+        dlog("Adding render surface for " + easyRtcId);
+        var canvas = Array.prototype.shift.call(this.externalRenderSurfaces);
+        var img = new Image();
+        img.onload = function () {
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        this.inUseRenderSurfaces[easyRtcId] = img;
     };
 
     /*

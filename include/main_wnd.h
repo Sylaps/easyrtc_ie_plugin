@@ -43,36 +43,29 @@
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "talk/app/webrtc/videosourceinterface.h"
 
+#include "easy_rtc_video_renderer.h"
+
 // Pure virtual interface for the main window.
+// TODO: rename to something like rendering manager
 class MainWindow
 {
 public:
 	virtual ~MainWindow(){
 	}
 
-	virtual bool IsWindow() = 0;
-	virtual HWND handle() const = 0;
-	virtual void MessageBox(const char* caption, const char* text, bool is_error) = 0;
-
 	virtual std::string* GetSelfie() = 0;
-
 	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface>) = 0;
 	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource() = 0;
 	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface>) = 0;
 	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource() = 0;
-
-	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video) = 0;
+	virtual void StartLocalRenderer(JavaScriptCallback*, std::string, webrtc::VideoTrackInterface* local_video) = 0;
 	virtual void StopLocalRenderer() = 0;
-
-	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
+	virtual void AddRemoteRenderer(JavaScriptCallback*, std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
 	virtual void StopRemoteRenderers() = 0;
-
 	virtual void StartCapture() = 0;
 	virtual void StopCapture() = 0;
-
 	virtual void QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data) = 0;
 	virtual std::string GetIceServers() = 0;
-
 };
 
 #ifdef WIN32
@@ -99,26 +92,23 @@ public:
 	bool Destroy();
 
 	void OnPaint();
-	void AddRenderHandle(uint32_t);
 	void CloseSources();
 
 	cricket::VideoCapturer* OpenVideoCaptureDevice();	
 
-	virtual bool IsWindow();
-	virtual void MessageBox(const char* caption, const char* text, bool is_error);
+	//virtual void MessageBox(const char* caption, const char* text, bool is_error);
 
 	virtual std::string* GetSelfie();
-	void ProcessUICallback(UINT, WPARAM, LPARAM, BOOL&);
 
 	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface> src){ video_source_ = src; }
 	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource(){ return video_source_; }
 	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface> src){ audio_source_ = src; }
 	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource(){ return audio_source_; }
 
-	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
+	virtual void StartLocalRenderer(JavaScriptCallback* cb, std::string, webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
 
-	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_videod);
+	virtual void AddRemoteRenderer(JavaScriptCallback* cb, std::string key, webrtc::VideoTrackInterface* remote_videod);
 	virtual void StopRemoteRenderers();
 
 	virtual void StartCapture();
@@ -132,104 +122,22 @@ public:
 
 	virtual std::string GetIceServers(){
 		return iceServerCandidates_;
-	}
-
-	HWND handle() const {
-		return wnd_;
-	}
-
-	class VideoRenderer : public webrtc::VideoRendererInterface	{
-
-	public:
-		VideoRenderer(HWND wnd, int width, int height, webrtc::VideoTrackInterface* track_to_render);
-
-		virtual ~VideoRenderer();
-
-		void Lock() {
-			::EnterCriticalSection(&buffer_lock_);
-		}
-
-		void Unlock() {
-			::LeaveCriticalSection(&buffer_lock_);
-		}
-
-		// VideoRendererInterface implementation
-		virtual void SetSize(int width, int height);
-		virtual void RenderFrame(const cricket::VideoFrame* frame);
-
-		const BITMAPINFO& bmi() const {
-			return bmi_;
-		}
-		const uint8* image() const {
-			return image_.get();
-		}
-
-	protected:
-		enum {
-			SET_SIZE,
-			RENDER_FRAME,
-		};		
-
-		HWND wnd_;
-		BITMAPINFO bmi_;
-		talk_base::scoped_ptr<uint8[]> image_;
-		CRITICAL_SECTION buffer_lock_;
-		talk_base::scoped_refptr<webrtc::VideoTrackInterface> rendered_track_;
-	};
-
-	// A little helper class to make sure we always to proper locking and
-	// unlocking when working with VideoRenderer buffers.
-	template <typename T>
-	class AutoLock {
-	public:
-		explicit AutoLock(T* obj) : obj_(obj) {
-			obj_->Lock();
-		}
-		~AutoLock() {
-			obj_->Unlock();
-		}
-	protected:
-		T* obj_;
-	};
+	}	
 
 protected:
-
 	void OnDestroyed();
 
-//	bool OnMessage(UINT msg, WPARAM wp, LPARAM lp, LRESULT* result);
-
-//	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
-//	static bool RegisterWindowClass();
-
 private:
-	
-	struct ExternalRemoteRenderer {
-		VideoRenderer* videoRenderer;
-		HWND hwnd;
-		ExternalRemoteRenderer(VideoRenderer* renderer, HWND wnd): videoRenderer(renderer), hwnd(wnd){
-		}
-		~ExternalRemoteRenderer(){
-		}
-	};
-
-	void renderToHwnd(HWND wnd, VideoRenderer* renderer);
-
-	talk_base::scoped_ptr<VideoRenderer> local_renderer_;
-
-	std::queue<HWND> remote_render_handles_;
-	std::map <std::string, ExternalRemoteRenderer*> remote_renderers;
-	
-	// remote renderer (deprecated)
-	talk_base::scoped_ptr<VideoRenderer> remote_renderer_;
 
 	std::string iceServerCandidates_;
-
 
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
 	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source_;
 	talk_base::scoped_refptr<webrtc::AudioSourceInterface> audio_source_;
 
 	cricket::VideoCapturer* capturer;
+	talk_base::scoped_ptr<EasyRTCVideoRenderer> local_renderer_;
+	std::vector<EasyRTCVideoRenderer*> remote_renderers_;
 	
 	HWND wnd_;
 	DWORD ui_thread_id_;

@@ -26,7 +26,10 @@
 */
 
 #include "stdafx.h"
-#include "conductor.h"
+
+#include "main_wnd.h"
+#include "javascript_callback.h"
+#include "peerconnection_wrapper.h"
 #include <utility>
 #include <algorithm> 
 //#include <functional> 
@@ -95,7 +98,7 @@ protected:
 };
 
 
-Conductor::Conductor(std::string easyRtcId, 
+PeerConnectionWrapper::PeerConnectionWrapper(std::string easyRtcId, 
 					MainWindow* main_wnd, 
 					talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pfactory,
 					std::string iceServerCandidates_) : 
@@ -107,38 +110,38 @@ Conductor::Conductor(std::string easyRtcId,
 	ASSERT(peer_connection_factory_ != NULL);
 }
 
-Conductor::~Conductor() {
+PeerConnectionWrapper::~PeerConnectionWrapper() {
 	if (peer_connection_ != NULL)
 		if (peer_connection_.get() != NULL)
 			LOG(LS_ERROR) << "leak, clean up peer_connection...";
 }
 
-bool Conductor::connection_active() const {
+bool PeerConnectionWrapper::connection_active() const {
 	return peer_connection_.get() != NULL;
 }
 
-void Conductor::Close() {
+void PeerConnectionWrapper::Close() {
 	DeletePeerConnection();
 }
 
-void Conductor::ProcessCandidate(std::string candidate) {
+void PeerConnectionWrapper::ProcessCandidate(std::string candidate) {
 	LOG(INFO) << "Got Candidate:" << candidate;
 	OnMessageFromPeer(0, candidate);
 }
 
-void Conductor::ProcessOffer(std::string offer)	{
+void PeerConnectionWrapper::ProcessOffer(std::string offer)	{
 	LOG(INFO) << "Got offer:" << offer;
 	OnMessageFromPeer(0, offer);	
 }
 
-void Conductor::Hangup() {
+void PeerConnectionWrapper::Hangup() {
 	if (peer_connection_.get()) {
 		DeletePeerConnection();
 	}
 }
 
 
-void Conductor::ProcessAnswer(std::string answer) {
+void PeerConnectionWrapper::ProcessAnswer(std::string answer) {
 
 	std::string type = "answer";
 	std::string sdp = extractString("sdp", answer); 
@@ -154,7 +157,7 @@ void Conductor::ProcessAnswer(std::string answer) {
 
 
 
-void Conductor::CreateOfferSDP() {
+void PeerConnectionWrapper::CreateOfferSDP() {
 	LOG(INFO) << "createoffer ***********************";
 
 	if (peer_connection_.get() == NULL)
@@ -170,13 +173,13 @@ std::string trim(std::string str) {
 }
 
 
-bool Conductor::InitializePeerConnection() {
+bool PeerConnectionWrapper::InitializePeerConnection() {
 	LOG(INFO) << "\n InitializePeerConnection *********************** " << this->easyRtcId;
 	ASSERT(peer_connection_.get() == NULL);
 
 
 	if (!peer_connection_factory_.get()) {
-		mainWindow_->MessageBox("Error", "Failed to initialize PeerConnectionFactory", true);
+//		mainWindow_->MessageBox("Error", "Failed to initialize PeerConnectionFactory", true);
 		DeletePeerConnection();
 		return false;
 	}
@@ -219,7 +222,7 @@ bool Conductor::InitializePeerConnection() {
 	peer_connection_ = peer_connection_factory_.get()->CreatePeerConnection(servers, this, NULL, this); // NULL: media constraints
 
 	if (!peer_connection_.get()) {
-		mainWindow_->MessageBox("Error", "CreatePeerConnection failed", true);
+//		mainWindow_->MessageBox("Error", "CreatePeerConnection failed", true);
 		DeletePeerConnection();
 	}
 
@@ -227,7 +230,7 @@ bool Conductor::InitializePeerConnection() {
 	return peer_connection_.get() != NULL;
 }
 
-void Conductor::DeletePeerConnection() {
+void PeerConnectionWrapper::DeletePeerConnection() {
 	if (peer_connection_){
 		peer_connection_->Close();
 		peer_connection_.release();
@@ -241,26 +244,26 @@ void Conductor::DeletePeerConnection() {
 // PeerConnectionObserver implementation.
 //
 
-void Conductor::OnError() {
+void PeerConnectionWrapper::OnError() {
 	LOG(LS_ERROR) << __FUNCTION__;
 	mainWindow_->QueueUIThreadCallback(this->easyRtcId, PEER_CONNECTION_ERROR, NULL);
 }
 
 // Called when a remote stream is added
-void Conductor::OnAddStream(webrtc::MediaStreamInterface* stream) {
+void PeerConnectionWrapper::OnAddStream(webrtc::MediaStreamInterface* stream) {
 	LOG(INFO) << __FUNCTION__ << " " << stream->label();
 
 	stream->AddRef();
 	mainWindow_->QueueUIThreadCallback(this->easyRtcId, NEW_STREAM_ADDED, new EasyRtcStream(this->easyRtcId, stream));
 }
 
-void Conductor::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
+void PeerConnectionWrapper::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
 	LOG(INFO) << __FUNCTION__ << " " << stream->label();
 	stream->AddRef();
 	mainWindow_->QueueUIThreadCallback(this->easyRtcId, STREAM_REMOVED, new EasyRtcStream(this->easyRtcId, stream));
 }
 
-void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
+void PeerConnectionWrapper::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 	LOG(INFO) << __FUNCTION__ << " " << candidate->sdp_mline_index();
 	Json::StyledWriter writer;
 	Json::Value jmessage;
@@ -280,27 +283,27 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 // PeerConnectionClientObserver implementation.
 //
 
-void Conductor::OnSignedIn() {
+void PeerConnectionWrapper::OnSignedIn() {
 	LOG(INFO) << __FUNCTION__;
 }
 
-void Conductor::OnDisconnected() {
+void PeerConnectionWrapper::OnDisconnected() {
 	LOG(INFO) << __FUNCTION__;
 
 	DeletePeerConnection();
 }
 
-void Conductor::OnPeerConnected(int id, const std::string& name) {
+void PeerConnectionWrapper::OnPeerConnected(int id, const std::string& name) {
 	LOG(INFO) << __FUNCTION__;
 }
 
-void Conductor::OnPeerDisconnected(int id)
+void PeerConnectionWrapper::OnPeerDisconnected(int id)
 {
 	LOG(INFO) << __FUNCTION__;
 	mainWindow_->QueueUIThreadCallback(this->easyRtcId, PEER_CONNECTION_CLOSED, NULL);
 }
 
-void Conductor::OnMessageFromPeer(int notused, const std::string& message) {
+void PeerConnectionWrapper::OnMessageFromPeer(int notused, const std::string& message) {
 	LOG(INFO) << "OnMessageFromPeer: " << message;
 	ASSERT(!message.empty());
 
@@ -367,17 +370,17 @@ void Conductor::OnMessageFromPeer(int notused, const std::string& message) {
 	}
 }
 
-void Conductor::OnMessageSent(int err) {
+void PeerConnectionWrapper::OnMessageSent(int err) {
 	// Process the next pending message if any.
 	mainWindow_->QueueUIThreadCallback(this->easyRtcId, SEND_MESSAGE_TO_PEER, NULL);
 }
 
-void Conductor::OnServerConnectionFailure() {
-	mainWindow_->MessageBox("Error", ("Failed to connect to " + server_).c_str(), true);
+void PeerConnectionWrapper::OnServerConnectionFailure() {
+//	mainWindow_->MessageBox("Error", ("Failed to connect to " + server_).c_str(), true);
 }
 
 // If you see an assert of capturer != null, it's probably this function's fault.
-void Conductor::AddStreams() {
+void PeerConnectionWrapper::AddStreams() {
 
 	if (active_streams_.find(kStreamLabel) != active_streams_.end())
 		return;  // Already added.
@@ -393,7 +396,7 @@ void Conductor::AddStreams() {
 	talk_base::scoped_refptr<webrtc::VideoTrackInterface> 
 		video_track(peer_connection_factory_->CreateVideoTrack(kVideoLabel, video_source));
 
-	mainWindow_->StartLocalRenderer(video_track);
+	mainWindow_->StartLocalRenderer(this, this->GetEasyRtcId(), video_track);
 
 	talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream =
 		peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
@@ -409,9 +412,12 @@ void Conductor::AddStreams() {
 	active_streams_.insert(MediaStreamPair(stream->label(), stream));
 }
 
+void PeerConnectionWrapper::SendToBrowser(const std::string& json){
+	PostToBrowser(json);
+}
 
 
-void Conductor::UIThreadCallback(int msg_id, void* data) {
+void PeerConnectionWrapper::UIThreadCallback(int msg_id, void* data) {
 	std::string* msg;
 	switch (msg_id)	{
 
@@ -423,8 +429,10 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 
 		case SEND_MESSAGE_TO_BROWSER:
 			msg = reinterpret_cast<std::string*>(data);
+			
 			javascriptCallback_->SendToBrowser(*msg);
-			LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
+
+			//LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
 			delete msg;
 			msg = NULL;
 			break;
@@ -448,7 +456,8 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 			break;
 
 		case PEER_CONNECTION_ERROR:
-			mainWindow_->MessageBox("Error", "an unknown error occurred", true);
+//			mainWindow_->MessageBox("Error", "an unknown error occurred", true);
+			LOG(INFO) << "Peer connection error occurred.";
 			break;
 
 		case NEW_STREAM_ADDED: {
@@ -460,7 +469,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 			// Only render the first track.
 			if (!tracks.empty()) {
 				webrtc::VideoTrackInterface* track = tracks[0];
-				mainWindow_->AddRemoteRenderer(estream->getEasyRtcId(), track);
+				mainWindow_->AddRemoteRenderer(this, estream->getEasyRtcId(), track);
 			}
 			//TODO: fix and think abour lifetimes of the stream.
 			stream->Release();
@@ -482,7 +491,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 }
 
 // seems to be called twice
-void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
+void PeerConnectionWrapper::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
 	LOG(INFO) << __FUNCTION__ ;
 	peer_connection_->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desc);
 	Json::StyledWriter writer;
@@ -496,17 +505,18 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
 	PostToBrowser(writer.write(jmessage));			// <-- send to signal server (JS)
 }
 
-void Conductor::OnFailure(const std::string& error) {
+void PeerConnectionWrapper::OnFailure(const std::string& error) {
 	LOG(LERROR) << error;
 }
 
 // inherited generic callback from CreateSessionDescriptionObserver (returns SDP and candidates)
-void Conductor::PostToBrowser(const std::string& json_object) {
+void PeerConnectionWrapper::PostToBrowser(const std::string& json_object) {
 
 	std::string* json = new std::string(json_object);
-	LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
+	//LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
 
 	// Threading issues present here, so we are trying out a direct call to javascript... fails as well  
 	mainWindow_->QueueUIThreadCallback(this->easyRtcId, SEND_MESSAGE_TO_BROWSER, json);
+	
 	
 }

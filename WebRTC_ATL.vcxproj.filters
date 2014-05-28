@@ -22,9 +22,6 @@
     <ClCompile Include="src\defaults.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\conductor.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -40,15 +37,18 @@
     <ClCompile Include="WebRTC_ATL_i.c">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\easy_rtc_video_renderer.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\peerconnection_wrapper.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WebRTC_ActiveX\flagdefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\_IWebRTCAPIEvents_CP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\conductor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\defaults.h">
@@ -79,6 +79,15 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\easy_rtc_video_renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\peerconnection_wrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\javascript_callback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

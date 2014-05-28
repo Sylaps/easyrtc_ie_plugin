@@ -4,7 +4,7 @@
 #include "talk/base/ssladapter.h"
 #include "talk/base/win32socketinit.h"
 #include "talk/base/win32socketserver.h"
-#include "conductor.h"
+#include "peerconnection_wrapper.h"
 #include "main_wnd.h"
 
 #include "WebRTCAPI.h"
@@ -19,7 +19,6 @@ IFACEMETHODIMP CWebRTCAPI::hello(BSTR *pRet) {
 	*pRet = ::SysAllocString(L"HelloWorld from C++");
 	return pRet ? S_OK : E_OUTOFMEMORY;
 }
-
 void showDebugAlert(LPCWSTR caption, LPCWSTR text) {
 #ifdef DEBUG
 //	MessageBox(NULL, text, caption, MB_OK | MB_SYSTEMMODAL);
@@ -42,12 +41,7 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 	Json::StyledWriter writer;
 	Json::Value jsonobj;
 	Json::Reader reader;
-
-	if (cmd == "getWindowHandle") {
-		SendWindowHandle(m_hWnd);
-		return S_OK;
-	} 
-
+	
 	if (cmd == "getSelfie") {
 		SendSelfie();
 		return S_OK;
@@ -62,14 +56,6 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 	}
 #endif
 
-	if (cmd == "addRenderHandle") {
-		// TODO:
-		// can this be done merely with a mutex? ctors could reach to compilation-unit state
-		// notion of master/slave needed (if there's none, you're the master, else send your handle to the master)
-		uint32_t handle = jsonobj["handle"].asUInt();
-		mainWindow->AddRenderHandle(handle);
-		return S_OK;
-	}
 
 	if (cmd == "seticeservers") {
 		mainWindow->SetIceServers(json);
@@ -78,29 +64,30 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 
 	//Json dependent path
 
-	Conductor* conductor = NULL;
+	PeerConnectionWrapper* conductor = NULL;
 	std::string easyRtcId = jsonobj["remoteId"].asString();
 
 	// create a  new conductor for this connection if it doesn't exist
-	auto finder = conductors.find(easyRtcId);
-	if (finder == conductors.end()){
+	for (auto c : connections) {
+		if (c->GetEasyRtcId() == easyRtcId) {
+			conductor = c;
+			break;
+		}
+	}
+	if (conductor == nullptr){
 		std::string iceServers = mainWindow->GetIceServers();
 		LOG(INFO) << "Found ice servers: " << iceServers;
 
 		if (iceServers == ""){
 			::DebugBreak();
 		}
-		conductor = new talk_base::RefCountedObject<Conductor>(easyRtcId, mainWindow, peer_connection_factory_, mainWindow->GetIceServers());
+		conductor = new talk_base::RefCountedObject<PeerConnectionWrapper>(easyRtcId, mainWindow, peer_connection_factory_, mainWindow->GetIceServers());
 
 		conductor->SetJSCallback(this);
 		conductor->AddRef();
 
-		conductors[easyRtcId] = conductor;
+		connections.push_back(conductor);
 		conductor->AddRef();
-
-	} else {
-		//just use it
-		conductor = conductors[easyRtcId];
 	}
 
 	if (cmd == "handleoffer") {
@@ -129,20 +116,8 @@ void CWebRTCAPI::SendSelfie(){
 
 	// Optimized json construction for frame
 	if (base64bitmap && *base64bitmap != "") {
-		/*
-		Json::StyledWriter writer;
-		Json::Value json;
-		Json::Value pluginMessage;
-
-		pluginMessage["data"] = *base64bitmap;
-		pluginMessage["message"] = "gotSelfie";
-		json["pluginMessage"] = pluginMessage;
-		
-		SendToBrowser(writer.write(json));
-		*/
 		selfieStream << "{\"pluginMessage\":{\"data\":\"data:image/jpg;base64," << *base64bitmap << "\", \"message\":\"gotSelfie\"}}";
 		SendToBrowser(selfieStream.str());
-//		selfieStream.clear();
 		delete base64bitmap;
 	}
 }
@@ -239,12 +214,11 @@ LRESULT CWebRTCAPI::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		peer_connection_factory_->Release();
 		peer_connection_factory_.release();
 	}
-	for (auto c : conductors){
-		Conductor * cd = c.second;
-		c.second->Close();
-		delete cd;
+	for (auto c : connections){
+		c->Close();
+		delete c;
 	}
-	conductors.clear();
+	connections.clear();
 	
 	mainWindow->StopCapture();
 
@@ -266,12 +240,18 @@ LRESULT CWebRTCAPI::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		//Find out which conductor this was sent from
 		ConductorCallback* cb = reinterpret_cast<ConductorCallback*>(lParam);
 
-		auto it = conductors.find(cb->easyRtcId_);
-		if (it != conductors.end()) {
-			it->second->UIThreadCallback(static_cast<int>(wParam), cb->data_);
+		PeerConnectionWrapper* pcw = nullptr;
+		for (auto c : connections) {
+			if (c->GetEasyRtcId() == cb->easyRtcId_){
+				pcw = c;
+				break;
+			}
+		}
+		if (pcw != nullptr) {
+			pcw->UIThreadCallback(static_cast<int>(wParam), cb->data_);
 		}
 		else {
-			LOG(INFO) << " Could not find Conductor for given id:" << cb->easyRtcId_;
+			LOG(INFO) << " Could not find PeerConnectionWrapper for given id:" << cb->easyRtcId_;
 		}
 	}
 	return S_OK;

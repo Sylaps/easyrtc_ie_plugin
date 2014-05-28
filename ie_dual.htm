@@ -93,6 +93,8 @@
 				/* Handle displaying the button to connect to other peers... */
 
 			    myrtcid = message.msgData.easyrtcid;
+			    rtcPlugin.setupRenderSurface("local"); // HACK: plz do this better
+
 			    document.getElementById("myid").innerHTML = "My id is: " + myrtcid;
 				addPeerButtons(message);
 				
@@ -125,6 +127,8 @@
 						case 'answer':
 						
 						    dlog('got answer');
+						    rtcPlugin.setupRenderSurface(json.senderEasyrtcid); // HACK: do this better...
+
 						    rtcPlugin.handleAnswer(json.senderEasyrtcid, json.msgData.sdp);
 							break;
 						
@@ -149,6 +153,8 @@
 
 						case 'offer': 
 							dlog('got offer');
+
+							rtcPlugin.setupRenderSurface(json.senderEasyrtcid); // HACK: do this better...
 
 							rtcPlugin.handleOffer(json.senderEasyrtcid, json.msgData, function(sdp){
 								dlog('returning answer');
@@ -185,12 +191,6 @@
 
 	});
 
-	function addHandles() {
-
-	    rtcPlugin.addRenderTarget(rtcPlugin2);
-	    rtcPlugin.addRenderTarget(rtcPlugin3);
-
-    }
 
 	function addPeerButtons(message){
 		var rtcids = Object.keys(message.msgData.roomData["default"].clientList);
@@ -301,7 +301,7 @@
 	        }
 	        var imagedata = data;
 	        img.src = imagedata;
-	        setTimeout(selfie, 30); // at most 30fps
+	        
 	    }, function (fail) {
 	        dlog("failed to take selfie.");
 	    });
@@ -310,38 +310,15 @@
 	function run() {
 
 	    element = document.getElementById("videoElement1");
-	    element2 = document.getElementById("videoElement2");
-	    element3 = document.getElementById("videoElement3");
-        /*
-		element.width = 400;
-		element.height = 300;
+	  
+	    element.width = 0;
+	    element.height = 0;
 
-		element2.width = 400;
-		element2.height = 300;
-
-		element3.width = 400;
-		element3.height = 300;
-        */
-		rtcPlugin = new RTCPlugin(element, function win() {
+	    var renderSurfaces = $(".renderSurface");
+		rtcPlugin = new RTCPlugin(element, renderSurfaces, function win() {
 
 		    setTimeout(function () {
-
-                rtcPlugin2 = new RTCPlugin(element2, function win() {
-                    rtcPlugin3 = new RTCPlugin(element3, function win() {
-
-                        dlog("Adding render handles for object elements loaded.")
-                        addHandles();
-                        authenticate();
-                        
-                    }, function fail() {
-                        alert("Could not start plugin 2.");
-                    });
-                }, function fail() {
-                    alert("Could not start plugin 2.");
-                });
-
-
-
+		        authenticate();
 		    }, 100);
 
 		}, function fail() {
@@ -392,42 +369,19 @@
         }
 
         .selfieCanvas {
-            height:150px;
             width:200px;
+            height:150px;
+        }
+
+        .renderSurface {
+            width: 640px;
+            height: 480px;
         }
     </style>
 
 
     <!-- WIP for overlay on videos - requires preceeding iframe in container -->
 
-    <div id="container1" class="videoContainer" style="left:0px; position:absolute; height:150px; width:200px;">
-        <iframe id='overlay1' class="videoOverlay" frameborder="0"></iframe>
-        <object id="videoElement1" class="videoElement"
-                classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-                height=150 width=200></object>
-    </div>
-
-    <div style="position: relative; left: 75px; top: 100px; z-index:-1">
-        <div id="container2" class="videoContainer">
-            <iframe id='overlay2' class="videoOverlay" frameborder="0"></iframe>
-            <object id="videoElement2" class="videoElement"
-                    classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-                    height=300 width=400></object>
-        </div>
-        <div id="controls" class="controls">
-            <iframe id='overlay3' class="videoOverlay" frameborder="0"></iframe>
-            <button>clickme</button>
-        </div>
-    </div>
-
-    <div id="container3" class="videoContainer" style="left: 600px; top: 100px; z-index: -1; position:absolute;">
-        <iframe id='overlay3' class="videoOverlay" frameborder="0"></iframe>
-        <object id="videoElement3" class="videoElement"
-                classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-                height=300 width=400
-                onreadystatechange="readyStateChange()"></object>
-
-    </div>
 
 
     <div style="clear:both;"> </div>
@@ -440,23 +394,23 @@
     <div id='myid'></div>
     <div style="border : 2px solid red;">
         <p>Selfie:</p>
-        <canvas id="selfieCanvas" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas1" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas2" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas3" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas4" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas5" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas6" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas7" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas8" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas9" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas10" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas11" class="selfieCanvas"></canvas>
-        <canvas id="selfieCanvas12" class="selfieCanvas"></canvas>
+        <canvas id="selfieCanvas" class="selfieCanvas">
+
+        </canvas>   
+
+        <canvas id="c1" class="renderSurface"></canvas>  
+        <canvas id="c2" class="renderSurface"></canvas>
+        <canvas id="c3" class="renderSurface"></canvas>
+        <canvas id="c4" class="renderSurface"></canvas>
     </div>
 	<pre>
 		<div id='divLog'> </div>
 	</pre>
-
+    <div id="container1" class="videoContainer" style="left:0px; position:absolute; height:0px; width:0px;">
+        <object id="videoElement1" class="videoElement"
+                onreadystatechange="readyStateChange()"
+                classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
+                height="2" width="100"></object>
+    </div> 
 </body>
 </html>

@@ -34,12 +34,14 @@
 #include <set>
 #include <string>
 
-#include "main_wnd.h"
-//#include "peer_connection_client.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/mediaconstraintsinterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "talk/base/scoped_ptr.h"
+
+#include "easy_rtc_video_renderer.h"
+#include "main_wnd.h"
+#include "javascript_callback.h"
 
 namespace webrtc
 {
@@ -51,14 +53,7 @@ namespace cricket
 	class VideoRenderer;
 }  // namespace cricket
 
-class JavaScriptCallback		// aka BrowserCallback
-{
-public:
-	virtual void SendToBrowser(const std::string& json) = 0;
 
-protected:
-	virtual ~JavaScriptCallback() { }
-};
 
 class EasyRtcStream {
 public:
@@ -85,10 +80,11 @@ struct ConductorCallback {
 	void * data_;
 };
 
-class Conductor
+class PeerConnectionWrapper
 	: public webrtc::PeerConnectionObserver,
 	public webrtc::CreateSessionDescriptionObserver,
-	public webrtc::MediaConstraintsInterface
+	public webrtc::MediaConstraintsInterface,
+	public JavaScriptCallback
 {
 public:
 	enum CallbackID
@@ -103,7 +99,8 @@ public:
 		SEND_EASY_RTC_ID
 	};
 
-	Conductor(std::string, MainWindow*, 
+	PeerConnectionWrapper(std::string, 
+			  MainWindow*,
 			  talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> ,
 			  std::string);
 
@@ -124,6 +121,8 @@ public:
 	Constraints mandatory_;
 	Constraints optional_;
 
+	virtual void SendToBrowser(const std::string& json);
+
 	virtual const Constraints& GetMandatory() const {
 		return mandatory_;
 	}
@@ -141,7 +140,7 @@ public:
 		javascriptCallback_ = jsc;
 	}
 
-	~Conductor();
+	~PeerConnectionWrapper();
 
 protected:
 

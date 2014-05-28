@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\conductor.cc" />
+    <ClCompile Include="src\peerconnection_wrapper.cc" />
     <ClCompile Include="src\defaults.cc" />
     <ClCompile Include="src\dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
@@ -138,13 +138,15 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\main_wnd.cc" />
+    <ClCompile Include="src\easy_rtc_video_renderer.cc" />
     <ClCompile Include="src\WebRTCAPI.cpp" />
     <ClCompile Include="src\WebRTC_ATL.cpp" />
     <ClCompile Include="WebRTC_ATL_i.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WebRTC_ActiveX\flagdefs.h" />
-    <ClInclude Include="include\conductor.h" />
+    <ClInclude Include="include\javascript_callback.h" />
+    <ClInclude Include="include\peerconnection_wrapper.h" />
     <ClInclude Include="include\defaults.h" />
     <ClInclude Include="include\dllmain.h" />
     <ClInclude Include="include\Interface.h" />
@@ -152,6 +154,7 @@
     <ClInclude Include="include\Resource.h" />
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\targetver.h" />
+    <ClInclude Include="include\easy_rtc_video_renderer.h" />
     <ClInclude Include="include\WebRTCAPI.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WebRTC_ATL_i.h" />
