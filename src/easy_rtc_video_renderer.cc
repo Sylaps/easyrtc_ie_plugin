@@ -63,7 +63,7 @@ void EasyRTCVideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
 
 	std::stringstream stream;
 	std::string* base64bitmap = encodeImage(image_.get(), bmi_);
-
+	/*
 	size_t size = frame->ConvertToRgbBuffer(cricket::FOURCC_JPEG,
 		image_.get(),
 		bmi_.bmiHeader.biSizeImage,
@@ -73,11 +73,11 @@ void EasyRTCVideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
 	std::string* base64jpeg = mBase64Encode(image_.get(),(int) size);
 
 	::DebugBreak();
-
+	*/
 
 	// Optimized json construction for frame
 	if (base64bitmap && *base64bitmap != "") {
-		stream << "{\"pluginMessage\":{\"data\":\"data:image/jpg;base64,"
+		stream << "{\"pluginMessage\":{\"data\":\"data:image/png;base64,"
 			<< *base64bitmap << "\", \"message\":\"frame\", \"easyrtcid\":\""
 			<< this->easyrtcid_ <<"\"}}";
 		callback_->SendToBrowser(stream.str());

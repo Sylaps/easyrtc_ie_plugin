@@ -66,6 +66,7 @@ static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
 		ULONGLONG length;
 		IStream *pStream = NULL;
 		if (CreateStreamOnHGlobal(NULL, /*delete on release*/TRUE, &pStream) == S_OK) {
+
 			if (c.Save(pStream, Gdiplus::ImageFormatJPEG) == S_OK) {
 				ULARGE_INTEGER ulnSize;
 				LARGE_INTEGER lnOffset;

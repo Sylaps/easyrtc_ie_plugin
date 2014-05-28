@@ -62,8 +62,8 @@
 		var auth = {
 		    "msgType": "authenticate",
 			"msgData" : {
-				"apiVersion" : "1.0.10",
-				"applicationName" : "easyrtc.audioVideo" 
+			    "apiVersion": "1.0.10",
+			    "applicationName": "easyrtc.audioVideo"
 			} 
 		};
 
@@ -374,8 +374,7 @@
         }
 
         .renderSurface {
-            width: 640px;
-            height: 480px;
+           
         }
     </style>
 
@@ -398,10 +397,10 @@
 
         </canvas>   
 
-        <canvas id="c1" class="renderSurface"></canvas>  
-        <canvas id="c2" class="renderSurface"></canvas>
-        <canvas id="c3" class="renderSurface"></canvas>
-        <canvas id="c4" class="renderSurface"></canvas>
+        <canvas id="c1" class="renderSurface" width="640" height="480"></canvas>  
+        <canvas id="c2" class="renderSurface" width="640" height="480"></canvas>
+        <canvas id="c3" class="renderSurface" width="640" height="480"></canvas>
+        <canvas id="c4" class="renderSurface" width="640" height="480"></canvas>
     </div>
 	<pre>
 		<div id='divLog'> </div>
@@ -412,5 +411,6 @@
                 classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
                 height="2" width="100"></object>
     </div> 
+
 </body>
 </html>

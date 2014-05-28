@@ -143,9 +143,10 @@
     RTCPlugin.prototype.setupRenderSurface = function (easyRtcId) {
         dlog("Adding render surface for " + easyRtcId);
         var canvas = Array.prototype.shift.call(this.externalRenderSurfaces);
+        var ctx = canvas.getContext("2d");
         var img = new Image();
         img.onload = function () {
-            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         };
         this.inUseRenderSurfaces[easyRtcId] = img;
     };
