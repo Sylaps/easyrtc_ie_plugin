@@ -3,10 +3,11 @@ hacking on the IE plugin
 
 # General Architecture
 
-The plugin leverages ATL to interface with Win32 and COM and implements a scriptable ActiveX control that can be embedded within IE via an <object> tag. Javascript interacts with the ActiveX object via the mechanisms provided by ATL, as defined in the WebRTCAPI.idl file in the project.
+The plugin leverages ATL to interface with Win32 and COM and implements a scriptable ActiveX control that can be embedded within IE via an `<object>` tag. Javascript interacts with the ActiveX object via the mechanisms provided by ATL, as defined in the WebRTCAPI.idl file in the project.
 
 This interface file (.idl == interface definition language) defines the ways that Javascript can call to the plugin. There is an extention interface used to implement calling back to Javascript following ATL convention as well.
 
+```
 -------------------    -------------      --------------------
 | IE / Javascript |--->| WebRTCAPI |=====>| Peer Connections |
 -------------------    -------------      --------------------
@@ -18,6 +19,7 @@ This interface file (.idl == interface definition language) defines the ways tha
          |<--------------|       |<-----------------|
              Javascript             UI Thread Message
              Bindings
+```
 
 ## Important parts:
 
