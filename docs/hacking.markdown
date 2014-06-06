@@ -26,6 +26,17 @@ This interface file (.idl == interface definition language) defines the ways tha
 - Interface Code  (idl, message map)
   [WebRTCAPI Message Map](../include/WebRTCAPI.h)
 
+```C++
+BEGIN_MSG_MAP(CWebRTCAPI)
+  MESSAGE_HANDLER(WM_PAINT, OnPaint)
+  MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
+  ...
+  // HACK: using the message loop as a thread-safe message passing structure
+  MESSAGE_HANDLER(WM_APP+1,  OnMessage)
+
+END_MSG_MAP()
+```
+
 - device + context management in main\_wnd
  
 - signalling negotiation, parsing of json in C++
