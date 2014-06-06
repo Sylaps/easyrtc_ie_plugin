@@ -23,8 +23,9 @@ This interface file (.idl == interface definition language) defines the ways tha
 
 ## Important parts:
 
-- Interface Code  (idl, message map)
-  [WebRTCAPI Message Map](../include/WebRTCAPI.h)
+### Interface Code  (idl, message map)
+
+- [WebRTCAPI Message Map](../include/WebRTCAPI.h)
 
 ```C++
 BEGIN_MSG_MAP(CWebRTCAPI)
@@ -33,7 +34,6 @@ BEGIN_MSG_MAP(CWebRTCAPI)
   ...
   // HACK: using the message loop as a thread-safe message passing structure
   MESSAGE_HANDLER(WM_APP+1,  OnMessage)
-
 END_MSG_MAP()
 ```
 
