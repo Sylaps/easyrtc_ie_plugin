@@ -24,7 +24,10 @@ This interface file (.idl == interface definition language) defines the ways tha
 ## Important parts:
 
 - Interface Code  (idl, message map)
+  [WebRTCAPI Message Map](../include/WebRTCAPI.h)
+
 - device + context management in main\_wnd
+ 
 - signalling negotiation, parsing of json in C++
 - peer connection management, rendering
 - cross-threaded concerns, posting events to javascript
