@@ -8,6 +8,10 @@ The plugin leverages ATL to interface with Win32 and COM and implements a script
 This interface file (.idl == interface definition language) defines the ways that Javascript can call to the plugin. There is an extention interface used to implement calling back to Javascript following ATL convention as well.
 
 ```
+                                          -----------------
+                                          | Device Manager |
+                                          ------------------
+                                                    |
 -------------------    -------------      --------------------
 | IE / Javascript |--->| WebRTCAPI |=====>| Peer Connections |
 -------------------    -------------      --------------------
