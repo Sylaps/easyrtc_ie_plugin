@@ -184,7 +184,7 @@ bool MainWnd::Destroy() {
 	return ret != FALSE;
 }
 
-void MainWnd::StartLocalRenderer(JavaScriptCallback* cb, std::string easyRtcId, webrtc::VideoTrackInterface* local_video) {
+void MainWnd::StartLocalRenderer(JavaScriptCallback* cb, webrtc::VideoTrackInterface* local_video) {
 	local_renderer_.reset(new EasyRTCVideoRenderer(cb, "local", 1, 1, local_video));
 }
 

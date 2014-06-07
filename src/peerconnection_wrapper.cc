@@ -268,6 +268,7 @@ void PeerConnectionWrapper::OnIceCandidate(const webrtc::IceCandidateInterface* 
 	Json::StyledWriter writer;
 	Json::Value jmessage;
 
+	jmessage["easyrtcid"] = this->GetEasyRtcId();
 	jmessage[kCandidateSdpMidName] = candidate->sdp_mid();
 	jmessage[kCandidateSdpMlineIndexName] = candidate->sdp_mline_index();
 	std::string sdp;
@@ -385,7 +386,11 @@ void PeerConnectionWrapper::AddStreams() {
 	if (active_streams_.find(kStreamLabel) != active_streams_.end())
 		return;  // Already added.
 	
-	mainWindow_->StartCapture();
+	//TODO: refactor this up to main_wnd - this should be a singleton value
+	// This also prevents the local video from rendering unless there's a call in progress.
+
+	// not an ideal place to start capture.
+	mainWindow_->StartCapture(); 
 
 	talk_base::scoped_refptr<webrtc::AudioSourceInterface> audio_source = mainWindow_->GetAudioSource();
 	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source = mainWindow_->GetVideoSource();
@@ -396,7 +401,9 @@ void PeerConnectionWrapper::AddStreams() {
 	talk_base::scoped_refptr<webrtc::VideoTrackInterface> 
 		video_track(peer_connection_factory_->CreateVideoTrack(kVideoLabel, video_source));
 
-	mainWindow_->StartLocalRenderer(this, this->GetEasyRtcId(), video_track);
+	// not an ideal place to start the local renderer. see TODO.
+	mainWindow_->StartLocalRenderer(this, video_track);
+	// << end of todo.
 
 	talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream =
 		peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
@@ -496,6 +503,8 @@ void PeerConnectionWrapper::OnSuccess(webrtc::SessionDescriptionInterface* desc)
 	peer_connection_->SetLocalDescription(DummySetSessionDescriptionObserver::Create(), desc);
 	Json::StyledWriter writer;
 	Json::Value jmessage;
+
+	jmessage["easyrtcid"] = this->GetEasyRtcId();
 	jmessage[kSessionDescriptionTypeName] = desc->type();
 
 	std::string sdp;

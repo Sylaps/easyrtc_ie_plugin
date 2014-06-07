@@ -318,7 +318,7 @@
 		rtcPlugin = new RTCPlugin(element, renderSurfaces, function win() {
 
 		    setTimeout(function () {
-		        authenticate();
+		        setupCallbacks();
 		    }, 100);
 
 		}, function fail() {

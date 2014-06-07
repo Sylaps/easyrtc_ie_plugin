@@ -5,6 +5,7 @@
 #include "..\WebRTC_ATL_i.h"
 #include "_IWebRTCAPIEvents_CP.h"
 #include "talk/base/ssladapter.h"
+#include "libjpeg_turbo/turbojpeg.h"
 
 // this group is a hack to get around min/max issues with importing GdiPlus with NOMINMAX defined.
 #include <algorithm>
@@ -48,9 +49,38 @@ static std::string* mBase64Encode(void * bytes, int byteLength){
 	return result;
 }
 
+//#define JPEG_ENCODE_TURBO // NOT WORKING!
+
 // Forget understanding it. It's magic. :P
 static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
+	std::string* result = nullptr;
 
+#ifdef JPEG_ENCODE_TURBO
+	const int JPEG_QUALITY = 75;
+	const int COLOR_COMPONENTS = 3;
+	int _width = bmi.bmiHeader.biWidth;
+	int _height = abs(bmi.bmiHeader.biHeight);
+	long unsigned int _jpegSize = 0;
+	unsigned char* _compressedImage = NULL; //!< Memory is allocated by tjCompress2 if _jpegSize == 0
+
+	unsigned char* source = const_cast<unsigned char*>(image);
+
+	tjhandle _jpegCompressor = tjInitCompress();
+
+	tjCompress(_jpegCompressor, source, _width, 0, _height, bmi.bmiHeader.biWidth * bmi.bmiHeader.biBitCount / 8,
+		_compressedImage, &_jpegSize, TJSAMP_444, JPEG_QUALITY,
+		TJFLAG_FASTDCT);
+
+	tjDestroy(_jpegCompressor);
+
+	result = mBase64Encode(_compressedImage, _jpegSize);
+
+	// malloc'd by libjpeg, missing tjFree... >(
+	if (_compressedImage){
+		free(_compressedImage);
+	}
+
+#else
 	HBITMAP bitmap = ::CreateBitmap(
 		bmi.bmiHeader.biWidth,
 		abs(bmi.bmiHeader.biHeight),
@@ -58,15 +88,13 @@ static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
 		bmi.bmiHeader.biBitCount,
 		(void*)image
 	);
-
-	std::string* result = nullptr;
 	if (bitmap) {
 		CImage c;
 		c.Attach(bitmap);
 		ULONGLONG length;
 		IStream *pStream = NULL;
+		// CImage requires us to use an IStream to save it's contents.
 		if (CreateStreamOnHGlobal(NULL, /*delete on release*/TRUE, &pStream) == S_OK) {
-
 			if (c.Save(pStream, Gdiplus::ImageFormatJPEG) == S_OK) {
 				ULARGE_INTEGER ulnSize;
 				LARGE_INTEGER lnOffset;
@@ -88,6 +116,8 @@ static std::string* encodeImage(const uint8* image, const BITMAPINFO bmi){
 		}
 		pStream->Release();
 	}
+#endif
+
 	return result;
 }
 

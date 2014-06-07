@@ -58,7 +58,7 @@ public:
 	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource() = 0;
 	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface>) = 0;
 	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource() = 0;
-	virtual void StartLocalRenderer(JavaScriptCallback*, std::string, webrtc::VideoTrackInterface* local_video) = 0;
+	virtual void StartLocalRenderer(JavaScriptCallback*, webrtc::VideoTrackInterface* local_video) = 0;
 	virtual void StopLocalRenderer() = 0;
 	virtual void AddRemoteRenderer(JavaScriptCallback*, std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
 	virtual void StopRemoteRenderers() = 0;
@@ -105,7 +105,7 @@ public:
 	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface> src){ audio_source_ = src; }
 	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource(){ return audio_source_; }
 
-	virtual void StartLocalRenderer(JavaScriptCallback* cb, std::string, webrtc::VideoTrackInterface* local_video);
+	virtual void StartLocalRenderer(JavaScriptCallback* cb, webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
 
 	virtual void AddRemoteRenderer(JavaScriptCallback* cb, std::string key, webrtc::VideoTrackInterface* remote_videod);
