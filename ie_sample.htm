@@ -1,32 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WebRTCAPI</title>
+  <title>WebRTCAPI</title>
 	<script src="socket.io.min.js"></script>
-    <script src="jquery-1.11.1.min.js"></script>
+  <script src="jquery-1.11.1.min.js"></script>
 	<script src="rtcplugin.js"></script>
-
 </head>
-
 <body>
-
 	<br>
 	<button onclick="debug()">debug</button>
     <!-- data:image/png;base64, -->
     <button onclick="selfie()">selfie</button>
 	<br>
-    
-    <script type="text/javascript">
+  <script type="text/javascript">
 
 	var myrtcid
-	,   rtcPlugin
-    ,   rtcPlugin2
-	, 	iceServers
-	,   socket
-	,   element
-    ,   element2
-    ,   element3
-	,   setupCallbacks;
+	  , rtcPlugin
+    , rtcPlugin2
+	  ,	iceServers
+	  , socket
+	  , element
+    , element2
+    , element3
+	  , setupCallbacks;
 
 	if (!Object.keys) {
 		Object.keys = function(obj) {
@@ -41,20 +37,19 @@
 
 	if (!Array.prototype.forEach) {
 	    Array.prototype.forEach = function (func, thisarg) {
-	        var self = thisarg || this;
-	        var i = 0
-	        for (i = 0; i < self.length; i++) {
-	            func(self[i]);
-	        }
+        var self = thisarg || this;
+        var i = 0
+        for (i = 0; i < self.length; i++) {
+            func(self[i]);
+        }
 	    }
 	}
 
 	$(document).ready(function(){
 
-	    element = document.getElementById("videoElement1");
-	    element2 = document.getElementById("videoElement2");
-	    element3 = document.getElementById("videoElement3");
-
+    element = document.getElementById("videoElement1");
+    element2 = document.getElementById("videoElement2");
+    element3 = document.getElementById("videoElement3");
 
 	    //socket = io.connect('dev.easyrtc.com');
 		socket = io.connect('192.168.1.16:8080');
@@ -76,26 +71,26 @@
 			    	// dlog("native --> onicecandidate");
 
 			    	socket.emit ("easyrtcCmd", {
-					  msgType: "candidate",
-					  senderEasyrtcid: myrtcid,
-					  targetEasyrtcid: rtcPlugin.remoteId,
-					  msgData: {
-					    type: "candidate",
-					    label: candidate.sdpMLineIndex,
-					    id: candidate.sdpMid,
-					    candidate: candidate.candidate
-					  }
-					}, function (){
-						// there must be a callback for this emit to work.
-					});
+              msgType: "candidate",
+              senderEasyrtcid: myrtcid,
+              targetEasyrtcid: rtcPlugin.remoteId,
+              msgData: {
+                type: "candidate",
+                label: candidate.sdpMLineIndex,
+                id: candidate.sdpMid,
+                candidate: candidate.candidate
+              }
+            }, function (){
+              // there must be a callback for this emit to work.
+            });
 			    };
 
 				/* Handle displaying the button to connect to other peers... */
 
-			    myrtcid = message.msgData.easyrtcid;
-			    rtcPlugin.setupRenderSurface("local"); // HACK: plz do this better
+			  myrtcid = message.msgData.easyrtcid;
+			  rtcPlugin.setupRenderSurface("local"); // HACK: plz do this better
 
-			    document.getElementById("myid").innerHTML = "My id is: " + myrtcid;
+  	    document.getElementById("myid").innerHTML = "My id is: " + myrtcid;
 				addPeerButtons(message);
 				
 				iceServers = message.msgData.iceConfig.iceServers;
@@ -108,18 +103,18 @@
 				    var msgType = json.msgType || json.msgData.type;
 
 				    if (msgType) {
-				        // cleanup sdp
-				        if (json.msgData && json.msgData.sdp) {
-							var sdp = json.msgData.sdp;
-							var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
-							sdp = sdp.replace(/\\r\\n/g, actualnewlines);
-							sdp = sdp.replace(/\"/g, '');
+				      // cleanup sdp
+              if (json.msgData && json.msgData.sdp) {
+                var sdp = json.msgData.sdp;
+                var actualnewlines = String.fromCharCode(13) + String.fromCharCode(10);
+                sdp = sdp.replace(/\\r\\n/g, actualnewlines);
+                sdp = sdp.replace(/\"/g, '');
 
-							json.msgData.sdp = sdp;
-							dlog("----------");
-							dlog(json.msgData.sdp);
-							dlog("----------");
-						}	
+                json.msgData.sdp = sdp;
+                dlog("----------");
+                dlog(json.msgData.sdp);
+                dlog("----------");
+              }	
 
 						// don't need, could just check for sdp...
 						switch(msgType) {
@@ -185,12 +180,9 @@
 						}
 					}
 				});
-
 			});
 		};
-
 	});
-
 
 	function addPeerButtons(message){
 		var rtcids = Object.keys(message.msgData.roomData["default"].clientList);
@@ -206,29 +198,6 @@
 		}
 		document.getElementById('divPeers').innerHTML = htm;
 	}
-
-/*
-{
-  "msgData": {
-    "roomData": {
-      "default": {
-        "roomName": "default",
-        "roomStatus": "update",
-        "clientListDelta": {
-          "removeClient": {
-            "X0XLzHnnUh9FXceq0Lo9": {
-              "easyrtcid": "X0XLzHnnUh9FXceq0Lo9"
-            }
-          }
-        }
-      }
-    }
-  },
-  "easyrtcid": "-SWJqgr9cAhlr7r60Lo-",
-  "msgType": "roomData",
-  "serverTime": 1397237883668
-}
-*/
 
 	function handleRoomData(roomData) {
 		var htm = '';
@@ -309,12 +278,12 @@
 
 	function run() {
 
-	    element = document.getElementById("videoElement1");
+	  element = document.getElementById("videoElement1");
 	  
-	    element.width = 0;
-	    element.height = 0;
+	  element.width = 0;
+	  element.height = 0;
 
-	    var renderSurfaces = $(".renderSurface");
+	  var renderSurfaces = $(".renderSurface");
 		rtcPlugin = new RTCPlugin(element, renderSurfaces, function win() {
 
 		    setTimeout(function () {
@@ -337,55 +306,47 @@
 	        run();
 	    }
 	}
-    </script>
+</script>
 
-    <style>
-        .videoOverlay {
-            position: absolute;
-            background: 3px solid white;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
+<style>
+    .videoOverlay {
+        position: absolute;
+        background: 3px solid white;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
 
-        .videoElement {
-            position: relative;
-            z-index:1;
-        }
+    .videoElement {
+        position: relative;
+        z-index:1;
+    }
 
-        .videoContainer {
-            position:relative;
-            width:400px;
-            height:300px;
-            z-index:0;
-        }
-         
-        .controls{
-            position:absolute;
-            left:200px;
-            top:200px;
-            z-index:1;
-            background: none transparent;
-        }
+    .videoContainer {
+        position:relative;
+        width:400px;
+        height:300px;
+        z-index:0;
+    }
+     
+    .controls{
+        position:absolute;
+        left:200px;
+        top:200px;
+        z-index:1;
+        background: none transparent;
+    }
 
-        .selfieCanvas {
-            width:200px;
-            height:150px;
-        }
+    .selfieCanvas {
+        width:200px;
+        height:150px;
+    }
 
-        .renderSurface {
-           
-        }
-    </style>
-
-
-    <!-- WIP for overlay on videos - requires preceeding iframe in container -->
-
-
-
-    <div style="clear:both;"> </div>
-
-
+    .renderSurface {
+       
+    }
+  </style>
+  <div style="clear:both;"> </div>
 	<div id='divMe'></div>
 	<div id='divPeers'></div>
 	<div id='divATL'></div>
@@ -394,9 +355,7 @@
     <div style="border : 2px solid red;">
         <p>Selfie:</p>
         <canvas id="selfieCanvas" class="selfieCanvas">
-
         </canvas>   
-
         <canvas id="c1" class="renderSurface" width="640" height="480"></canvas>  
         <canvas id="c2" class="renderSurface" width="640" height="480"></canvas>
         <canvas id="c3" class="renderSurface" width="640" height="480"></canvas>
@@ -409,8 +368,8 @@
         <object id="videoElement1" class="videoElement"
                 onreadystatechange="readyStateChange()"
                 classid="CLSID:0E8D29CE-D2D0-459A-8009-3B34EFBC43F0"
-                height="2" width="100"></object>
+                height="2" width="100">
+        </object>
     </div> 
-
 </body>
 </html>
