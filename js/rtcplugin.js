@@ -44,6 +44,7 @@
         /* private */ function nativeEventHandler(data) {
             var json;
             var obj;
+            var img;
 
             if (typeof data == 'string') {
                 json = JSON.parse(data);
@@ -67,7 +68,10 @@
             } else if (json.pluginMessage) {
 
                 if (json.pluginMessage.message == 'frame') {
-                    this.inUseRenderSurfaces[json.pluginMessage.easyrtcid].src = json.pluginMessage.data;
+                    img = this.inUseRenderSurfaces[json.pluginMessage.easyrtcid];
+                    if (img) {
+                        this.inUseRenderSurfaces[json.pluginMessage.easyrtcid].src = json.pluginMessage.data;
+                    }
                     return;
                 }
 
@@ -156,6 +160,7 @@
             img.onload = function () {
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             };
+            img.canvas = canvas;
             this.inUseRenderSurfaces[easyRtcId] = img;
         };
 
@@ -230,7 +235,8 @@
             var img = this.inUseRenderSurfaces[remoteId];
             if (img) {
                 img.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D"; //blank image
-                //delete this.inUseRenderSurfaces[remoteId];
+                this.externalRenderSurfaces.splice(0, 0, img.canvas); // treat like a stack, so as to not cycle through available canvii
+                delete this.inUseRenderSurfaces[remoteId];
             }
             nativeCall(this, "hangup", { remoteId: remoteId });
         };
