@@ -8,8 +8,7 @@
 </head>
 <body>
   <br>
-  <button onclick="debug()">debug</button>
-    <!-- data:image/png;base64, -->
+  <button onclick="debug()">debug</button> 
     <button onclick="selfie()">selfie</button>
   <br>
   <script type="text/javascript">
@@ -157,7 +156,7 @@
                 socket.emit('easyrtcCmd', { 
                   msgType : "answer",
                   targetEasyrtcid : json.senderEasyrtcid,
-                  msgData : { sdp : sdp, type : "answer" }
+                  msgData : { sdp : sdp.sdp, type : "answer" }
                 }, function() {
                   dlog("answered");
                 });
@@ -167,9 +166,11 @@
             
 
             case 'hangup':
-                            dlog("sent HANGUP:" + JSON.stringify(json));
-                            debugger;
-                            rtcPlugin.hangUp();
+                dlog("sent HANGUP:" + JSON.stringify(json));
+                console.log(json);
+                if (json.senderEasyrtcid) {
+                    rtcPlugin.hangUp(json.senderEasyrtcid);
+                }
               break;
 
             default:
@@ -190,12 +191,13 @@
     var htm = '';
     for(var i = 0; i < rtcids.length; i++) {
       var n = rtcids[i];
-      if (n !== myrtcid)
-                htm += "<div>"
-      htm += '<button id="' + n + '" onclick="offer(\'' + n + '\')">' + n + '</button>';
-      htm += '<button onclick="hangup("' + n + '")">hangup</button>'
-                htm += "</div>"
-    }
+      if (n !== myrtcid) {
+          htm += "<div>";
+          htm += '<button id="' + n + '" onclick="offer(\'' + n + '\')">' + n + '</button>';
+          htm += "<button onclick='hangup(\"" + n + "\")'>hangup</button>";
+          htm += "</div>"
+      }
+  }
     document.getElementById('divPeers').innerHTML = htm;
   }
 
@@ -231,9 +233,8 @@
   }
 
   function hangup(easyRtcId) {
-      rtcPlugin.hangUp(easyRtcId);
     socket.emit('easyrtcCmd', { "msgType" : "hangup", "targetEasyrtcid" : easyRtcId } , function() { 
-      dlog('hangup('+easyRtcId+')');
+      rtcPlugin.hangUp(easyRtcId)
     });
     document.getElementById(rtcPlugin.remoteId).disabled = false; 
   }
@@ -244,12 +245,12 @@
 
   function offer(remoteId) {
     // create the offer 
-    rtcPlugin.createOffer(remoteId, function (sdp) {
+    rtcPlugin.createOffer(remoteId, function (json) {
       // send it off over signaling
       socket.emit('easyrtcCmd', { 
         msgType : "offer",
         targetEasyrtcid : remoteId,
-        msgData : { sdp : sdp, type : "offer" }
+        msgData : { sdp : json.sdp, type : "offer" }
       }, function offerCallbackComplete (param) {
         dlog('offerCallback()' + param);
         document.getElementById(remoteId).disabled = true;
@@ -352,7 +353,7 @@
   <div id='divATL'></div>
   <div id='divSDP'></div>
     <div id='myid'></div>
-    <div style="border : 2px solid red;">
+    <div>
         <p>Selfie:</p>
         <canvas id="selfieCanvas" class="selfieCanvas">
         </canvas>   

@@ -227,6 +227,11 @@
     	* - closes the current call
     	*/
         RTCPlugin.prototype.hangUp = function (remoteId) {
+            var img = this.inUseRenderSurfaces[remoteId];
+            if (img) {
+                img.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D"; //blank image
+                //delete this.inUseRenderSurfaces[remoteId];
+            }
             nativeCall(this, "hangup", { remoteId: remoteId });
         };
 

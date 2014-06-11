@@ -95,9 +95,7 @@ A sample is included in [ie_sample.htm](../ie_sample.htm)
 
 ### Refactorings and bugs
 - Camera not started until a peer connection is opened
--- Lift the capure source out of the peer connection wrapper and make it a borrowed resource
-
+  - Lift the capure source out of the peer connection wrapper and make it a borrowed resource
 - possible memory leak in rendering pipeline (i420->jpeg->base64 string)
-- hangup regressed/not working
 
 
