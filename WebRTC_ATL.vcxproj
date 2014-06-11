@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WebRTC_ActiveX\flagdefs.h" />
+    <ClInclude Include="include\device_controller.h" />
     <ClInclude Include="include\javascript_callback.h" />
     <ClInclude Include="include\peerconnection_wrapper.h" />
     <ClInclude Include="include\defaults.h" />
@@ -164,15 +165,19 @@
     <ResourceCompile Include="WebRTC_ATL.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ActiveXReadMe.txt" />
+    <Text Include="LICENSE.txt" />
+    <Text Include="LICENSE_THIRD_PARTY.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="ie.js" />
+    <None Include="docs\hacking.markdown" />
+    <None Include="js\rtcplugin.js" />
     <None Include="README.md" />
-    <None Include="WebRTCAPI.htm">
+    <None Include="sample\ie_sample.htm">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="sample\jquery-1.11.1.min.js" />
+    <None Include="sample\socket.io.min.js" />
     <None Include="WebRTCAPI.rgs" />
     <None Include="WebRTC_ATL.def" />
     <None Include="WebRTC_ATL.rgs" />

@@ -14,16 +14,16 @@
 #include "talk/media/base/videorenderer.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "talk/app/webrtc/videosourceinterface.h"
-#include "javascript_callback.h"
+#include "device_controller.h"
 
 
 class EasyRTCVideoRenderer : public webrtc::VideoRendererInterface	{
 
 public:
-	EasyRTCVideoRenderer(JavaScriptCallback*, std::string, int, int, webrtc::VideoTrackInterface*);
+	EasyRTCVideoRenderer(DeviceController*, std::string, int, int, webrtc::VideoTrackInterface*);
 
+	DeviceController* callback_;
 	std::string easyrtcid_;
-	JavaScriptCallback* callback_; 
 
 	virtual ~EasyRTCVideoRenderer();
 

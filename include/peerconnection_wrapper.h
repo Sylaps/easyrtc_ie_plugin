@@ -83,24 +83,12 @@ struct ConductorCallback {
 class PeerConnectionWrapper
 	: public webrtc::PeerConnectionObserver,
 	public webrtc::CreateSessionDescriptionObserver,
-	public webrtc::MediaConstraintsInterface,
-	public JavaScriptCallback
+	public webrtc::MediaConstraintsInterface
 {
 public:
-	enum CallbackID
-	{
-		MEDIA_CHANNELS_INITIALIZED = 1,
-		PEER_CONNECTION_CLOSED,
-		SEND_MESSAGE_TO_PEER,
-		SEND_MESSAGE_TO_BROWSER,
-		PEER_CONNECTION_ERROR,
-		NEW_STREAM_ADDED,
-		STREAM_REMOVED,
-		SEND_EASY_RTC_ID
-	};
 
-	PeerConnectionWrapper(std::string, 
-			  MainWindow*,
+	PeerConnectionWrapper(JavaScriptCallback* cb, std::string, 
+			  DeviceController*,
 			  talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> ,
 			  std::string);
 
@@ -136,15 +124,11 @@ public:
 //		SetMandatory(MediaConstraintsInterface::kEnableDtlsSrtp, true);
 	}
 
-	void SetJSCallback(JavaScriptCallback *jsc) {
-		javascriptCallback_ = jsc;
-	}
-
 	~PeerConnectionWrapper();
 
 protected:
 
-	JavaScriptCallback *javascriptCallback_;
+	JavaScriptCallback* atl_control;
 
 	bool InitializePeerConnection();	
 	void DeletePeerConnection();
@@ -189,7 +173,7 @@ protected:
 	talk_base::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
 
-	MainWindow* mainWindow_;
+	DeviceController* device_controller_;
 
 	std::deque<std::string*> pending_messages_;
 	std::map<std::string, talk_base::scoped_refptr<webrtc::MediaStreamInterface> > active_streams_;

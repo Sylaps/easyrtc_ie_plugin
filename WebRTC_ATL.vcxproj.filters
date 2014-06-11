@@ -90,6 +90,9 @@
     <ClInclude Include="include\javascript_callback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\device_controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WebRTC_ATL.rc">
@@ -103,13 +106,16 @@
     <None Include="WebRTC_ATL.def">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="WebRTCAPI.htm" />
     <None Include="WebRTCAPI.rgs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include=".gitignore" />
     <None Include="README.md" />
-    <None Include="ie.js" />
+    <None Include="docs\hacking.markdown" />
+    <None Include="sample\ie_sample.htm" />
+    <None Include="sample\jquery-1.11.1.min.js" />
+    <None Include="sample\socket.io.min.js" />
+    <None Include="js\rtcplugin.js" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="WebRTC_ATL.idl">
@@ -122,6 +128,7 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ActiveXReadMe.txt" />
+    <Text Include="LICENSE.txt" />
+    <Text Include="LICENSE_THIRD_PARTY.txt" />
   </ItemGroup>
 </Project>

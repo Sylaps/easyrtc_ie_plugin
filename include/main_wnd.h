@@ -45,33 +45,15 @@
 
 #include "easy_rtc_video_renderer.h"
 
+#include "device_controller.h"
+
 // Pure virtual interface for the main window.
 // TODO: rename to something like rendering manager
-class MainWindow
-{
-public:
-	virtual ~MainWindow(){
-	}
 
-	virtual std::string* GetSelfie() = 0;
-	virtual void SetVideoSource(talk_base::scoped_refptr<webrtc::VideoSourceInterface>) = 0;
-	virtual talk_base::scoped_refptr<webrtc::VideoSourceInterface> GetVideoSource() = 0;
-	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface>) = 0;
-	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource() = 0;
-	virtual void StartLocalRenderer(JavaScriptCallback*, webrtc::VideoTrackInterface* local_video) = 0;
-	virtual void StopLocalRenderer() = 0;
-	virtual void AddRemoteRenderer(JavaScriptCallback*, std::string key, webrtc::VideoTrackInterface* remote_video) = 0;
-	virtual void StopRemoteRenderers() = 0;
-	virtual void StartCapture() = 0;
-	virtual void StopCapture() = 0;
-	virtual void QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data) = 0;
-	virtual std::string GetIceServers() = 0;
-};
 
 #ifdef WIN32
 
-class MainWnd : public MainWindow
-{
+class MainWnd : public DeviceController {
 public:
 	
 	enum WindowMessages {
@@ -105,14 +87,17 @@ public:
 	virtual void SetAudioSource(talk_base::scoped_refptr<webrtc::AudioSourceInterface> src){ audio_source_ = src; }
 	virtual talk_base::scoped_refptr<webrtc::AudioSourceInterface> GetAudioSource(){ return audio_source_; }
 
-	virtual void StartLocalRenderer(JavaScriptCallback* cb, webrtc::VideoTrackInterface* local_video);
+	virtual talk_base::scoped_refptr<webrtc::MediaStreamInterface> GetLocalMediaStream();
+
+	virtual void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
 	virtual void StopLocalRenderer();
 
-	virtual void AddRemoteRenderer(JavaScriptCallback* cb, std::string key, webrtc::VideoTrackInterface* remote_videod);
+	virtual void AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_videod);
 	virtual void StopRemoteRenderers();
 
 	virtual void StartCapture();
 	virtual void StopCapture();
+
 
 	virtual void QueueUIThreadCallback(std::string easyRtcId, int msg_id, void* data);
 
@@ -129,7 +114,11 @@ protected:
 
 private:
 
+
+	void InitLocalMediaStream();
+
 	std::string iceServerCandidates_;
+	talk_base::scoped_refptr<webrtc::MediaStreamInterface> local_stream_;
 
 	talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory_;
 	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source_;

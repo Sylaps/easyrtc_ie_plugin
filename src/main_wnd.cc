@@ -125,6 +125,30 @@ cricket::VideoCapturer* MainWnd::OpenVideoCaptureDevice() {
 	return capturer;
 }
 
+void MainWnd::InitLocalMediaStream() {
+
+	auto audio_source = this->GetAudioSource();
+	auto video_source = this->GetVideoSource();
+
+	talk_base::scoped_refptr<webrtc::AudioTrackInterface>
+		audio_track(peer_connection_factory_->CreateAudioTrack(kAudioLabel, audio_source));
+
+	talk_base::scoped_refptr<webrtc::VideoTrackInterface>
+		video_track(peer_connection_factory_->CreateVideoTrack(kVideoLabel, video_source));
+
+	this->StartLocalRenderer(video_track);
+
+	local_stream_ = peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
+
+	local_stream_->AddTrack(audio_track);
+	local_stream_->AddTrack(video_track);
+}
+
+
+talk_base::scoped_refptr<webrtc::MediaStreamInterface> MainWnd::GetLocalMediaStream() {
+	return local_stream_;
+}
+
 void MainWnd::CloseSources() {
 	//cricket::VideoCapturer * cap = 
 
@@ -152,6 +176,8 @@ void MainWnd::StartCapture() {
 		video_source_ = peer_connection_factory_->CreateVideoSource(capturer, NULL);
 		ASSERT(video_source_ != NULL);
 	}
+
+	this->InitLocalMediaStream();
 }
 
 void MainWnd::StopCapture(){
@@ -164,6 +190,7 @@ void MainWnd::StopCapture(){
 		delete capturer;
 		capturer = NULL;
 	}
+	local_stream_.release();
 }
 
 
@@ -184,8 +211,9 @@ bool MainWnd::Destroy() {
 	return ret != FALSE;
 }
 
-void MainWnd::StartLocalRenderer(JavaScriptCallback* cb, webrtc::VideoTrackInterface* local_video) {
-	local_renderer_.reset(new EasyRTCVideoRenderer(cb, "local", 1, 1, local_video));
+void MainWnd::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
+	//... start here.
+	local_renderer_.reset(new EasyRTCVideoRenderer(this, "local", 1, 1, local_video));
 }
 
 void MainWnd::StopLocalRenderer() {
@@ -196,8 +224,8 @@ void MainWnd::StopLocalRenderer() {
  AddRemoteRenderer - Adds a renderer given a unique key and a video track. To succeed, there must be an 
  available HWND on the queue for this to consume as a rendering surface. (See AddRenderHandle)
 */
-void MainWnd::AddRemoteRenderer(JavaScriptCallback* cb, std::string key, webrtc::VideoTrackInterface* remote_video) {
-	remote_renderers_.push_back(new EasyRTCVideoRenderer(cb, key, 1, 1, remote_video));
+void MainWnd::AddRemoteRenderer(std::string key, webrtc::VideoTrackInterface* remote_video) {
+	remote_renderers_.push_back(new EasyRTCVideoRenderer(this, key, 1, 1, remote_video));
 }
 
 //hackhackhack

@@ -81,9 +81,7 @@ IFACEMETHODIMP CWebRTCAPI::pushToNative(BSTR bcmd, BSTR bjson) {
 		if (iceServers == ""){
 			::DebugBreak();
 		}
-		conductor = new talk_base::RefCountedObject<PeerConnectionWrapper>(easyRtcId, mainWindow, peer_connection_factory_, mainWindow->GetIceServers());
-
-		conductor->SetJSCallback(this);
+		conductor = new talk_base::RefCountedObject<PeerConnectionWrapper>(this, easyRtcId, mainWindow, peer_connection_factory_, mainWindow->GetIceServers());
 		conductor->AddRef();
 
 		connections.push_back(conductor);
@@ -196,6 +194,8 @@ IFACEMETHODIMP CWebRTCAPI::run() {
 		return S_OK;
 	}
 
+	mainWindow->StartCapture();
+
 	return S_OK;
 }
 
@@ -249,6 +249,12 @@ LRESULT CWebRTCAPI::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		}
 		if (pcw != nullptr) {
 			pcw->UIThreadCallback(static_cast<int>(wParam), cb->data_);
+		}
+		else if (cb->easyRtcId_ == "local") {
+			// special case - if we get a frame message for "local", we should just send it up to the browser.
+			auto msg = reinterpret_cast<std::string*>(cb->data_);
+			SendToBrowser(*msg);
+			delete msg;
 		}
 		else {
 			LOG(INFO) << " Could not find PeerConnectionWrapper for given id:" << cb->easyRtcId_;

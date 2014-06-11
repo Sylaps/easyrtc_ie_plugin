@@ -98,11 +98,13 @@ protected:
 };
 
 
-PeerConnectionWrapper::PeerConnectionWrapper(std::string easyRtcId, 
-					MainWindow* main_wnd, 
+PeerConnectionWrapper::PeerConnectionWrapper(JavaScriptCallback * cb,
+					std::string easyRtcId, 
+					DeviceController* device_controller, 
 					talk_base::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pfactory,
-					std::string iceServerCandidates_) : 
-					mainWindow_(main_wnd), 
+					std::string iceServerCandidates_) :
+					atl_control(cb),
+					device_controller_(device_controller),
 					easyRtcId(easyRtcId), 
 					peer_connection_factory_(pfactory), 
 					iceCandidatesFromSS_(iceServerCandidates_) {
@@ -236,8 +238,8 @@ void PeerConnectionWrapper::DeletePeerConnection() {
 		peer_connection_.release();
 	}
 	active_streams_.clear();
-	mainWindow_->StopLocalRenderer();
-	mainWindow_->StopRemoteRenderers();
+	//device_controller_->StopLocalRenderer();
+	device_controller_->StopRemoteRenderers();
 }
 
 //
@@ -246,7 +248,7 @@ void PeerConnectionWrapper::DeletePeerConnection() {
 
 void PeerConnectionWrapper::OnError() {
 	LOG(LS_ERROR) << __FUNCTION__;
-	mainWindow_->QueueUIThreadCallback(this->easyRtcId, PEER_CONNECTION_ERROR, NULL);
+	device_controller_->QueueUIThreadCallback(this->easyRtcId, DeviceController::PEER_CONNECTION_ERROR, NULL);
 }
 
 // Called when a remote stream is added
@@ -254,13 +256,13 @@ void PeerConnectionWrapper::OnAddStream(webrtc::MediaStreamInterface* stream) {
 	LOG(INFO) << __FUNCTION__ << " " << stream->label();
 
 	stream->AddRef();
-	mainWindow_->QueueUIThreadCallback(this->easyRtcId, NEW_STREAM_ADDED, new EasyRtcStream(this->easyRtcId, stream));
+	device_controller_->QueueUIThreadCallback(this->easyRtcId, DeviceController::NEW_STREAM_ADDED, new EasyRtcStream(this->easyRtcId, stream));
 }
 
 void PeerConnectionWrapper::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
 	LOG(INFO) << __FUNCTION__ << " " << stream->label();
 	stream->AddRef();
-	mainWindow_->QueueUIThreadCallback(this->easyRtcId, STREAM_REMOVED, new EasyRtcStream(this->easyRtcId, stream));
+	device_controller_->QueueUIThreadCallback(this->easyRtcId, DeviceController::STREAM_REMOVED, new EasyRtcStream(this->easyRtcId, stream));
 }
 
 void PeerConnectionWrapper::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
@@ -298,10 +300,9 @@ void PeerConnectionWrapper::OnPeerConnected(int id, const std::string& name) {
 	LOG(INFO) << __FUNCTION__;
 }
 
-void PeerConnectionWrapper::OnPeerDisconnected(int id)
-{
+void PeerConnectionWrapper::OnPeerDisconnected(int id) {
 	LOG(INFO) << __FUNCTION__;
-	mainWindow_->QueueUIThreadCallback(this->easyRtcId, PEER_CONNECTION_CLOSED, NULL);
+	device_controller_->QueueUIThreadCallback(this->easyRtcId, DeviceController::PEER_CONNECTION_CLOSED, NULL);
 }
 
 void PeerConnectionWrapper::OnMessageFromPeer(int notused, const std::string& message) {
@@ -373,7 +374,7 @@ void PeerConnectionWrapper::OnMessageFromPeer(int notused, const std::string& me
 
 void PeerConnectionWrapper::OnMessageSent(int err) {
 	// Process the next pending message if any.
-	mainWindow_->QueueUIThreadCallback(this->easyRtcId, SEND_MESSAGE_TO_PEER, NULL);
+	device_controller_->QueueUIThreadCallback(this->easyRtcId, DeviceController::SEND_MESSAGE_TO_PEER, NULL);
 }
 
 void PeerConnectionWrapper::OnServerConnectionFailure() {
@@ -385,31 +386,8 @@ void PeerConnectionWrapper::AddStreams() {
 
 	if (active_streams_.find(kStreamLabel) != active_streams_.end())
 		return;  // Already added.
-	
-	//TODO: refactor this up to main_wnd - this should be a singleton value
-	// This also prevents the local video from rendering unless there's a call in progress.
 
-	// not an ideal place to start capture.
-	mainWindow_->StartCapture(); 
-
-	talk_base::scoped_refptr<webrtc::AudioSourceInterface> audio_source = mainWindow_->GetAudioSource();
-	talk_base::scoped_refptr<webrtc::VideoSourceInterface> video_source = mainWindow_->GetVideoSource();
-
-	talk_base::scoped_refptr<webrtc::AudioTrackInterface> 
-		audio_track(peer_connection_factory_->CreateAudioTrack(kAudioLabel, audio_source));
-	
-	talk_base::scoped_refptr<webrtc::VideoTrackInterface> 
-		video_track(peer_connection_factory_->CreateVideoTrack(kVideoLabel, video_source));
-
-	// not an ideal place to start the local renderer. see TODO.
-	mainWindow_->StartLocalRenderer(this, video_track);
-	// << end of todo.
-
-	talk_base::scoped_refptr<webrtc::MediaStreamInterface> stream =
-		peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
-
-	stream->AddTrack(audio_track);
-	stream->AddTrack(video_track);
+	auto stream = device_controller_->GetLocalMediaStream();
 
 	if (!peer_connection_->AddStream(stream, NULL)) {
 		LOG(LS_ERROR) << "Adding stream to PeerConnection failed";
@@ -428,23 +406,19 @@ void PeerConnectionWrapper::UIThreadCallback(int msg_id, void* data) {
 	std::string* msg;
 	switch (msg_id)	{
 
-		case PEER_CONNECTION_CLOSED:
+	case DeviceController::PEER_CONNECTION_CLOSED:
 			LOG(INFO) << "PEER_CONNECTION_CLOSED";
 			DeletePeerConnection();
 			ASSERT(active_streams_.empty());
 			break;
 
-		case SEND_MESSAGE_TO_BROWSER:
+	case DeviceController::SEND_MESSAGE_TO_BROWSER:
 			msg = reinterpret_cast<std::string*>(data);
-			
-			javascriptCallback_->SendToBrowser(*msg);
-
-			//LOG(INFO) << "\n+++++ send_message_to_browser thread " << *msg;
-			delete msg;
-			msg = NULL;
+			atl_control->SendToBrowser(*msg);
+			delete msg; //the other thread created msg, but we have to delete it.
 			break;
 
-		case SEND_MESSAGE_TO_PEER:
+	case DeviceController::SEND_MESSAGE_TO_PEER:
 			LOG(INFO) << "SEND_MESSAGE_TO_PEER";
 			msg = reinterpret_cast<std::string*>(data);
 			if (msg) {
@@ -462,31 +436,30 @@ void PeerConnectionWrapper::UIThreadCallback(int msg_id, void* data) {
 
 			break;
 
-		case PEER_CONNECTION_ERROR:
+	case DeviceController::PEER_CONNECTION_ERROR:
 //			mainWindow_->MessageBox("Error", "an unknown error occurred", true);
 			LOG(INFO) << "Peer connection error occurred.";
 			break;
 
-		case NEW_STREAM_ADDED: {
+	case DeviceController::NEW_STREAM_ADDED: {
 			
-			EasyRtcStream* estream = reinterpret_cast<EasyRtcStream*>(data);
-			webrtc::MediaStreamInterface* stream = estream->getStream();
-			webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
+			auto estream = reinterpret_cast<EasyRtcStream*>(data);
+			auto stream = estream->getStream();
+			auto tracks = stream->GetVideoTracks();
 
 			// Only render the first track.
 			if (!tracks.empty()) {
-				webrtc::VideoTrackInterface* track = tracks[0];
-				mainWindow_->AddRemoteRenderer(this, estream->getEasyRtcId(), track);
+				auto track = tracks[0];
+				device_controller_->AddRemoteRenderer(estream->getEasyRtcId(), track);
 			}
-			//TODO: fix and think abour lifetimes of the stream.
 			stream->Release();
 
 			break;
 		}
 
-		case STREAM_REMOVED: {
+	case DeviceController::STREAM_REMOVED: {
 			// Remote peer stopped sending a stream.
-			webrtc::MediaStreamInterface* stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
+			auto stream = reinterpret_cast<webrtc::MediaStreamInterface*>(data);
 			stream->Release();
 			break;
 		}
@@ -518,14 +491,9 @@ void PeerConnectionWrapper::OnFailure(const std::string& error) {
 	LOG(LERROR) << error;
 }
 
+
 // inherited generic callback from CreateSessionDescriptionObserver (returns SDP and candidates)
 void PeerConnectionWrapper::PostToBrowser(const std::string& json_object) {
-
-	std::string* json = new std::string(json_object);
-	//LOG(INFO) << "+++++++++++++++++  SendMessage(): " + *json;
-
-	// Threading issues present here, so we are trying out a direct call to javascript... fails as well  
-	mainWindow_->QueueUIThreadCallback(this->easyRtcId, SEND_MESSAGE_TO_BROWSER, json);
-	
-	
+	std::string* json = new std::string(json_object); // must be deleted on the other side, after it's consumed.
+	device_controller_->QueueUIThreadCallback(this->easyRtcId, DeviceController::SEND_MESSAGE_TO_BROWSER, json);
 }

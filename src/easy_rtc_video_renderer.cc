@@ -15,9 +15,10 @@
 #include "easy_rtc_video_renderer.h"
 #include "javascript_callback.h"
 #include "WebRTCAPI.h"
+#include "device_controller.h"
 
 
-EasyRTCVideoRenderer::EasyRTCVideoRenderer(JavaScriptCallback* cb, std::string easyrtcid, int width, int height,
+EasyRTCVideoRenderer::EasyRTCVideoRenderer(DeviceController* cb, std::string easyrtcid, int width, int height,
 	webrtc::VideoTrackInterface* track_to_render)
 	: callback_(cb), easyrtcid_(easyrtcid), rendered_track_(track_to_render) {
 
@@ -63,24 +64,14 @@ void EasyRTCVideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
 
 	std::stringstream stream;
 	std::string* base64bitmap = encodeImage(image_.get(), bmi_);
-	/*
-	size_t size = frame->ConvertToRgbBuffer(cricket::FOURCC_JPEG,
-		image_.get(),
-		bmi_.bmiHeader.biSizeImage,
-		bmi_.bmiHeader.biWidth *
-		bmi_.bmiHeader.biBitCount / 8);
-
-	std::string* base64jpeg = mBase64Encode(image_.get(),(int) size);
-
-	::DebugBreak();
-	*/
 
 	// Optimized json construction for frame
 	if (base64bitmap && *base64bitmap != "") {
 		stream << "{\"pluginMessage\":{\"data\":\"data:image/png;base64,"
 			<< *base64bitmap << "\", \"message\":\"frame\", \"easyrtcid\":\""
 			<< this->easyrtcid_ <<"\"}}";
-		callback_->SendToBrowser(stream.str());
+		std::string *data = new std::string(stream.str());
+		callback_->QueueUIThreadCallback(easyrtcid_, DeviceController::SEND_MESSAGE_TO_BROWSER, data);
 		delete base64bitmap;
 	}
 
