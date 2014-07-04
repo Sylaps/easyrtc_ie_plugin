@@ -5,7 +5,7 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{C7538D02-A2BE-4A28-990A-2923B378BD55}
+AppId={your_appId
 AppName=EasyWebRTC_IEPlugin
 AppVersion=0.9
 AppPublisher=Priologic
