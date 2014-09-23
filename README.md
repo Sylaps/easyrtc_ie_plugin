@@ -1,3 +1,9 @@
+This code will only work with an antiquidated version of the Google WebRTC code base and was only at a demo-able state, not production quality.
+We have stopped work on this project because Temasys has a free IE plugin and Doubango has an
+open source one (see https://github.com/sarandogou/webrtc-everywhere). If you want to develop your own plugin,
+we suggest starting from the Doubango code base.
+
+
 easyrtc_ie_plugin
 =================
 
